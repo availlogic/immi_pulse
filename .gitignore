@@ -1,0 +1,346 @@
+# ImmiPulse .gitignore
+# This is a multi-service monorepo: Node.js (backend, frontend) + Python
+# (ingestion) + Postgres + Docker. Patterns are grouped by category so
+# collaborators can see what is excluded and why.
+
+# ============================================================================
+# OS / editor / IDE
+# ============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*  # macOS resource forks
+.Spotlight-V100
+.Trashes
+.DocumentRevisions-V100
+.fseventsd
+
+# Linux
+*~
+.nfs*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.history/
+
+# OS-detritus
+*.sw?
+*~.nib
+.DS_Store?
+
+# ============================================================================
+# Secrets / credentials / environment overrides
+# ============================================================================
+
+# Local env files (NEVER commit)
+.env
+.env.*
+!.env.example
+.envrc
+
+# Editor / shell secrets
+*.pem
+*.key
+*.crt
+*.p12
+
+# SSH / GPG
+id_rsa
+id_rsa.*
+id_dsa
+id_dsa.*
+id_ed25519
+id_ed25519.*
+*.gpg
+*.asc
+
+# Cloud / deploy credentials
+.gcloud/
+.aws/
+.azure/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# ============================================================================
+# Node.js / npm / pnpm / yarn
+# ============================================================================
+
+node_modules/
+.npm/
+.pnpm-store/
+.pnpm-debug.log*
+.yarn/
+.yarn-error.log*
+.yarn-cache/
+.eslintcache
+.lintcache
+.npm/
+
+# TypeScript build output
+*.tsbuildinfo
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+
+# Coverage output
+coverage/
+.nyc_output/
+*.lcov
+*.coverage
+
+# Optional npm / yarn debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================================================================
+# Python / pip / uv / poetry
+# ============================================================================
+
+# Byte-compiled / optimized / DLLs
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# pyenv / Pipenv
+.Python
+.venv.bak/
+
+# uv
+.uv-cache/
+uv.lock
+
+# Test / coverage
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Type checking
+.mypy_cache/
+.pyre/
+
+# Jupyter
+.ipynb_checkpoints/
+profile_default/
+ipython_config.py
+
+# Distribution archives
+*.tar.gz
+*.whl
+*.zip
+
+# Secrets (python-side)
+secrets/
+*.pem
+secrets.toml
+
+# ============================================================================
+# Database / Postgres / pgvector
+# ============================================================================
+
+# Local DB dumps / seeds (do not commit user data)
+*.dump
+*.pgdump
+*.sql.gz
+*.sql.bak
+
+# pgdata is mounted as a Docker volume (see docker-compose.yml)
+pgdata/
+
+# ============================================================================
+# Docker / container
+# ============================================================================
+
+# Build context artifacts
+.docker/
+*.dockerignore-tmp
+
+# Local override compose files (use compose.prod.yml for production)
+docker-compose.override.yml
+docker-compose.local.yml
+
+# ============================================================================
+# Test / coverage output
+# ============================================================================
+
+# Playwright (frontend)
+test-results/
+playwright-report/
+playwright/.cache/
+
+# LHCI (Lighthouse CI)
+.lighthouseci/
+
+# Test screenshots / recordings
+*.test.png
+*.spec.ts.snap
+
+# E2E visual regression baselines — staged (not committed by default)
+frontend/tests/e2e/baselines/
+# Regenerate with: UPDATE_BASELINES=1 npx playwright test visual_regression
+
+# Vitest
+*.vitest-cache/
+
+# Coverage summary files
+coverage-summary.json
+coverage-final.json
+
+# ============================================================================
+# Documentation / build output
+# ============================================================================
+
+# Generated docs (VitePress / Docusaurus / Sphinx)
+.docusaurus/
+docs-dist/
+site/
+.vuepress/dist/
+
+# MkDocs
+/site/
+
+# ============================================================================
+# IDE / OS-specific (extended)
+# ============================================================================
+
+# JetBrains
+*.iml
+*.ipr
+*.iws
+
+# Vim
+.*.sw[a-z]
+*.un~
+Session.vim
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.tmProject
+*.tmWorkbench
+
+# ============================================================================
+# Logs (runtime, debug)
+# ============================================================================
+
+logs/
+*.log
+*.log.*
+!npm-debug.log*
+!yarn-debug.log*
+!yarn-error.log*
+!pnpm-debug.log*
+!lerna-debug.log*
+
+# ============================================================================
+# Environment / OS metadata
+# ============================================================================
+
+# Avoid committing metadata that may contain OS or user info
+.metadata
+.babel-cache
+
+# ============================================================================
+# Documentation exclusions
+# ============================================================================
+
+# Do not ignore docs/ — those are committed
+# !docs/
+
+# ============================================================================
+# ImmiPulse-specific
+# ============================================================================
+
+# Admin / dev secrets that should not be checked in even if they
+# accidentally land in the repo root.
+admin-token.txt
+admin-key.json
+.env.admin
+.kube/
+
+# Cloudflare tunnel credentials (NEVER commit; the config.yml references
+# the JSON via a runtime secret mount).
+cloudflared-credentials.json
+*.tunnel.json
+!scripts/load/feed.js
+!scripts/load/admin_ingest.js
+!scripts/load/broker_dispatch.js
+!scripts/load/node-load-test.mjs
+
+# Real scraper output samples (use fixtures_data.py instead)
+fixtures-samples/
+real-scrapes/
+
+# Local admin dashboard screenshots (use UPDATE_BASELINES=1 to refresh)
+admin-dashboard-snapshots/
+
+# AI Agent
+.agents/

@@ -1,0 +1,41 @@
+:root {
+    /* Color tokens (Visual-Guidelines.md §2) */
+    --color-primary: #1e40af;
+    --color-primary-hover: #1d4ed8;
+    --color-accent: #ea580c;
+    --color-bg-main: #f9fafb;
+    --color-bg-card: #ffffff;
+    --color-text-primary: #111827;
+    --color-text-secondary: #4b5563;
+    --color-border: #e5e7eb;
+    --color-success: #10b981;
+    --color-error: #ef4444;
+
+    /* Badge tokens */
+    --color-jurisdiction-bg: #eff6ff;
+    --color-jurisdiction-fg: #1e40af;
+    --color-tag-bg: #f3f4f6;
+    --color-tag-fg: #374151;
+
+    /* Spacing scale (base 8) */
+    --space-1: 8px;
+    --space-2: 16px;
+    --space-3: 24px;
+    --space-4: 32px;
+    --space-5: 48px;
+    --space-6: 64px;
+
+    /* Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 16px;
+
+    /* Typography */
+    --font-heading: 'Outfit', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+    --h1-size: 2.25rem;
+    --h2-size: 1.5rem;
+    --h3-size: 1.25rem;
+    --body-size: 1rem;
+    --caption-size: 0.875rem;
+}
