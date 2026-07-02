@@ -27,6 +27,55 @@ TZINFOS = {
     "BRT": timezone(timedelta(hours=-3)),
 }
 
+MONTHS_MAP = {
+    # German
+    "januar": "january", "februar": "february", "märz": "march", "april": "april",
+    "mai": "may", "juni": "june", "juli": "july", "august": "august",
+    "september": "september", "oktober": "october", "november": "november", "dezember": "december",
+    # French
+    "janvier": "january", "février": "february", "mars": "march", "avril": "april",
+    "mai": "may", "juin": "june", "juillet": "july", "août": "august",
+    "septembre": "september", "octobre": "october", "novembre": "november", "décembre": "december",
+    # Spanish / Portuguese
+    "enero": "january", "janeiro": "january", "febrero": "february", "fevereiro": "february",
+    "marzo": "march", "março": "march", "abril": "april", "mayo": "may", "maio": "may",
+    "junio": "june", "junho": "june", "julio": "july", "julho": "july",
+    "agosto": "august", "septiembre": "september", "setembro": "september",
+    "octubre": "october", "outubro": "october", "noviembre": "november", "novembro": "november",
+    "diciembre": "december", "dezembro": "december",
+    # Turkish
+    "ocak": "january", "şubat": "february", "mart": "march", "nisan": "april",
+    "mayıs": "may", "haziran": "june", "temmuz": "july", "ağustos": "august",
+    "eylül": "september", "ekim": "october", "kasım": "november", "aralık": "december",
+    # Thai
+    "มกราคม": "january", "กุมภาพันธ์": "february", "มีนาคม": "march", "เมษายน": "april",
+    "พฤษภาคม": "may", "มิถุนายน": "june", "กรกฎาคม": "july", "สิงหาคม": "august",
+    "กันยายน": "september", "ตุลาคม": "october", "พฤศจิกายน": "november", "ธันวาคม": "december",
+}
+
+
+def preprocess_date_string(text: str) -> str:
+    text_lower = text.lower()
+    # Sort by length descending to avoid substring replacement collisions (e.g. 'juni' replacing inside 'junio')
+    sorted_months = sorted(MONTHS_MAP.items(), key=lambda x: len(x[0]), reverse=True)
+    for local_month, en_month in sorted_months:
+        if local_month in text_lower:
+            text_lower = text_lower.replace(local_month, en_month)
+    text_lower = text_lower.replace(" de ", " ")
+    text_lower = text_lower.replace(" à ", " ")
+    text_lower = re.sub(r"(\d+)\s*h\s*(\d+)", r"\1:\2", text_lower)
+    text_lower = re.sub(r"(\d+)h(\d+)", r"\1:\2", text_lower)
+    text_lower = text_lower.replace("年", "-").replace("月", "-").replace("日", " ")
+    text_lower = text_lower.replace("時", ":").replace("分", "")
+
+    # Convert Thai Buddhist Era (BE) to Gregorian (AD) (e.g. 2569 -> 2026)
+    def _convert_thai_year(match):
+        val = int(match.group(1))
+        return str(val - 543)
+    text_lower = re.sub(r"\b(25\d{2}|26\d{2})\b", _convert_thai_year, text_lower)
+
+    return text_lower
+
 
 def parse_publication_date(raw: str | datetime | None) -> datetime:
     """Parse a publication date into a tz-aware UTC datetime.
@@ -47,8 +96,9 @@ def parse_publication_date(raw: str | datetime | None) -> datetime:
         text = str(raw).strip()
         # Chinese full-form published-at markers (发布时间, 发布于).
         text = re.sub(r"^\s*(发布时间|发布于|公開日|게시일)\s*[:：]?\s*", "", text)
+        processed_text = preprocess_date_string(text)
         try:
-            dt = date_parser.parse(text, fuzzy=True, tzinfos=TZINFOS)
+            dt = date_parser.parse(processed_text, fuzzy=True, tzinfos=TZINFOS)
         except (ValueError, TypeError, OverflowError) as exc:
             raise ValueError(f"unparseable publication date: {raw!r}") from exc
 
