@@ -26,6 +26,7 @@ export interface ArticleRow {
     source_url: string;
     origin_jurisdiction: string;
     publication_date: Date;
+    tagging_confidence: number | null;
 }
 
 /**
@@ -34,7 +35,7 @@ export interface ArticleRow {
 export async function fetchArticleById(articleId: string): Promise<ArticleRow | null> {
     const { query } = await import('../db.js');
     const result = await query<ArticleRow>(
-        `SELECT id, title, summary, source_url, origin_jurisdiction, publication_date
+        `SELECT id, title, summary, source_url, origin_jurisdiction, publication_date, tagging_confidence
          FROM articles WHERE id = $1`,
         [articleId]
     );

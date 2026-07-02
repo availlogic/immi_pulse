@@ -51,10 +51,23 @@ export default async function alertsRoutes(app: FastifyInstance): Promise<void> 
             return reply.code(400).send({ status: 'error', message: 'target_jurisdiction is required' });
         }
 
+        // Validate and canonicalize target_jurisdiction input.
+        const valid = await query<{ name: string }>(
+            'SELECT name FROM jurisdictions WHERE code = $1 OR name = $2',
+            [jurisdiction, jurisdiction]
+        );
+        if (!valid.rowCount) {
+            return reply.code(400).send({
+                status: 'error',
+                message: `Unknown jurisdiction: ${jurisdiction}`,
+            });
+        }
+        const canonicalJurisdiction = valid.rows[0].name;
+
         const existing = await query<{ id: string }>(
             `SELECT id FROM user_alerts
              WHERE user_id = $1 AND target_jurisdiction = $2 AND keyword = $3`,
-            [req.auth!.sub, jurisdiction, keyword]
+            [req.auth!.sub, canonicalJurisdiction, keyword]
         );
         if (existing.rowCount && existing.rowCount > 0) {
             return reply.code(409).send({
@@ -67,7 +80,7 @@ export default async function alertsRoutes(app: FastifyInstance): Promise<void> 
         await query(
             `INSERT INTO user_alerts (id, user_id, target_jurisdiction, keyword)
              VALUES ($1, $2, $3, $4)`,
-            [id, req.auth!.sub, jurisdiction, keyword]
+            [id, req.auth!.sub, canonicalJurisdiction, keyword]
         );
 
         return reply.code(201).send({

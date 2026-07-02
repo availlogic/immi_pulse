@@ -47,7 +47,8 @@ export async function dispatchKeywordAlerts(since: Date): Promise<number> {
                 a.source_url
          FROM articles a
          LEFT JOIN jurisdictions j ON j.code = a.origin_jurisdiction
-         WHERE a.created_at >= $1`,
+         WHERE a.created_at >= $1
+           AND (a.tagging_confidence IS NULL OR a.tagging_confidence >= 0.85)`,
         [since]
     );
     if (!recent.rowCount) return 0;
@@ -70,8 +71,13 @@ export async function dispatchKeywordAlerts(since: Date): Promise<number> {
     for (const article of recent.rows) {
         const articleJurisdictionName = article.jurisdiction_name ?? article.origin_jurisdiction;
         const haystack = `${article.title}\n${article.summary}`.toLowerCase();
+        const matchCode = article.origin_jurisdiction;
+        const matchName = article.jurisdiction_name;
         for (const alert of alerts.rows) {
-            if (alert.target_jurisdiction !== articleJurisdictionName) continue;
+            const isMatch = alert.target_jurisdiction === matchCode ||
+                            alert.target_jurisdiction === matchName ||
+                            alert.jurisdiction_code === matchCode;
+            if (!isMatch) continue;
             if (!haystack.includes(alert.keyword.toLowerCase())) continue;
 
             // Avoid duplicate alerts for the same article/user pair.
@@ -126,7 +132,10 @@ export async function dispatchDigests(frequency: 'daily' | 'weekly'): Promise<nu
     let sent = 0;
     for (const recipient of recipients.rows) {
         const params: unknown[] = [];
-        const conditions: string[] = [`publication_date >= NOW() - INTERVAL '60 days'`];
+        const conditions: string[] = [
+            `publication_date >= NOW() - INTERVAL '60 days'`,
+            `(tagging_confidence IS NULL OR tagging_confidence >= 0.85)`
+        ];
         if (recipient.preferred_jurisdictions.length > 0) {
             params.push(recipient.preferred_jurisdictions);
             conditions.push(`origin_jurisdiction = ANY($${params.length}::varchar[])`);

@@ -45,32 +45,63 @@ CREATE TABLE user_alerts (
 ```
 
 ### 2.4 `articles` Table
-Stores raw and enriched news articles. Embedding field uses `VECTOR(3072)` to store dense vector representations (e.g. OpenAI `text-embedding-3-large`).
+Stores raw and enriched news articles. Embedding field uses `HALFVEC(3072)` to support fp16 dimension compression allowing HNSW vector indexing.
 ```sql
 CREATE TABLE articles (
     id VARCHAR(50) PRIMARY KEY, -- Prefix format 'art_'
     title VARCHAR(500) NOT NULL,
     raw_content TEXT NOT NULL,
     summary TEXT NOT NULL,
-    publication_date TIMESTAMP WITH TIME ZONE NOT NULL, -- Authoritative publication date/发布时间 (used for TTL calculations)
+    publication_date TIMESTAMP WITH TIME ZONE NOT NULL, -- Authoritative publication date (used for TTL calculations)
     source_url TEXT NOT NULL,
     origin_jurisdiction VARCHAR(50) NOT NULL, -- Jurisdiction code (e.g. 'US', 'CA', 'DE')
     publisher_authority INTEGER DEFAULT 3, -- 1 (Low) to 5 (Government Official)
-    embedding VECTOR(3072) NOT NULL, -- pgvector field for dense representation
+    embedding HALFVEC(3072) NOT NULL, -- pgvector halfvec field for dense representation
     tags VARCHAR(50)[] DEFAULT '{}', -- Classification tags (e.g. {"Education", "Retirement"})
     is_analysis BOOLEAN DEFAULT FALSE, -- True if this represents derivative commentary
     parent_article_id VARCHAR(50) REFERENCES articles(id) ON DELETE SET NULL, -- References original announcement if is_analysis is True
     alternative_sources TEXT[] DEFAULT '{}', -- List of identical coverage links merged into this event
+    tagging_confidence DOUBLE PRECISION, -- LLM tagging confidence (NULL if deterministic)
+    tagger_provider VARCHAR(50) DEFAULT 'keyword', -- 'keyword', 'llm', or 'admin-override'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-### 2.5 `scraper_logs` Table
-Tracks ingestion health status for internal monitoring.
+### 2.5 `jurisdictions` Table
+Stores the canonical master list of supported jurisdictions/countries.
+```sql
+CREATE TABLE jurisdictions (
+    code VARCHAR(10) PRIMARY KEY, -- Unique code (e.g. 'US', 'CA', 'GB')
+    name VARCHAR(100) UNIQUE NOT NULL, -- Full country name (e.g. 'United States', 'Canada')
+    region VARCHAR(50) NOT NULL, -- Regional group (e.g. 'Americas', 'Europe')
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 2.6 `admin_review_queue` Table
+Tracks low-confidence articles requiring admin review before publication.
+```sql
+CREATE TABLE admin_review_queue (
+    id VARCHAR(50) PRIMARY KEY, -- Prefix format 'rev_'
+    article_id VARCHAR(50) NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    reason TEXT NOT NULL, -- Reason for review routing (e.g. low LLM confidence score)
+    proposed_tags VARCHAR(50)[] DEFAULT '{}', -- Suggested classification tags
+    proposed_jurisdiction VARCHAR(50), -- Suggested target jurisdiction
+    confidence DOUBLE PRECISION NOT NULL, -- LLM classifier confidence score (< 0.85)
+    status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+    notes TEXT, -- Admin decision explanation notes
+    decided_by VARCHAR(50) REFERENCES users(id) ON DELETE SET NULL, -- Admin user ID who decided
+    decided_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 2.7 `scraper_logs` Table
+Tracks ingestion health status and also logs custom alerts dispatched.
 ```sql
 CREATE TABLE scraper_logs (
     id SERIAL PRIMARY KEY,
-    scraper_name VARCHAR(100) NOT NULL,
+    scraper_name VARCHAR(255) NOT NULL, -- Ingestion name (or alert track ID format 'alert-sent:usr_id:art_id')
     status VARCHAR(20) NOT NULL, -- 'success', 'failure'
     error_message TEXT,
     items_scraped INTEGER DEFAULT 0,
@@ -98,7 +129,7 @@ LIMIT 5;
 An HNSW (Hierarchical Navigable Small World) index is created on the `embedding` column to ensure sub-second vector queries:
 ```sql
 CREATE INDEX articles_embedding_hnsw_idx ON articles 
-USING hnsw (embedding vector_cosine_ops);
+USING hnsw (embedding halfvec_cosine_ops);
 ```
 
 ### 3.3 Relational Indexes

@@ -40,6 +40,7 @@ export async function buildGlobalFeed(limit = 10): Promise<FeedArticle[]> {
         `SELECT ${SELECT_COLUMNS}
          FROM articles
          WHERE publication_date >= NOW() - INTERVAL '60 days'
+           AND (tagging_confidence IS NULL OR tagging_confidence >= 0.85)
          ORDER BY publication_date DESC
          LIMIT $1`,
         [Math.min(limit, 10) * 4] // fetch pool > 10 then apply diversity
@@ -54,7 +55,10 @@ export async function buildPersonalizedFeed(
 ): Promise<FeedArticle[]> {
     // Fetch pool from preferred jurisdictions, tagged if requested.
     const params: unknown[] = [];
-    const conditions: string[] = [`publication_date >= NOW() - INTERVAL '60 days'`];
+    const conditions: string[] = [
+        `publication_date >= NOW() - INTERVAL '60 days'`,
+        `(tagging_confidence IS NULL OR tagging_confidence >= 0.85)`
+    ];
 
     if (prefs.preferred_jurisdictions.length > 0) {
         params.push(prefs.preferred_jurisdictions);

@@ -56,6 +56,17 @@
   }
   ```
 
+### 2.3 User Logout
+- **Endpoint**: `POST /auth/logout`
+- **Authentication**: JWT Required
+- **Response (200 OK)**:
+  ```json
+  {
+    "status": "success",
+    "message": "Logged out successfully"
+  }
+  ```
+
 ---
 
 ## 3. User Preferences & Configuration
@@ -91,6 +102,41 @@
   {
     "status": "success",
     "message": "Preferences updated successfully"
+  }
+  ```
+
+### 3.3 Delete Account (GDPR Compliance)
+- **Endpoint**: `DELETE /user/account`
+- **Authentication**: JWT Required
+- **Response (200 OK)**:
+  ```json
+  {
+    "status": "success",
+    "message": "Account deleted successfully"
+  }
+  ```
+
+### 3.4 Export Account Data (GDPR Compliance)
+- **Endpoint**: `GET /user/export`
+- **Authentication**: JWT Required
+- **Response (200 OK)**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "user": {
+        "id": "usr_9a8b7c6d",
+        "email": "user@example.com",
+        "user_tier": "basic",
+        "created_at": "2026-06-25T14:30:00Z"
+      },
+      "preferences": {
+        "preferred_jurisdictions": ["US", "CA"],
+        "preferred_tags": ["Education"],
+        "digest_frequency": "daily"
+      },
+      "alerts": []
+    }
   }
   ```
 
@@ -213,5 +259,111 @@
         }
       ]
     }
+  }
+  ```
+
+### 6.2 Ingest Article (Admin Bypass)
+- **Endpoint**: `POST /admin/ingest`
+- **Authentication**: JWT Required (Admin)
+- **Request Body**:
+  ```json
+  {
+    "title": "Ad-hoc immigration update",
+    "summary": "This is a summary of the ad-hoc ingest",
+    "raw_content": "Full text body here...",
+    "source_url": "https://ad-hoc.local/article123",
+    "origin_jurisdiction": "US",
+    "tags": ["Education"],
+    "publication_date": "2026-06-25T12:00:00Z"
+  }
+  ```
+- **Response (201 Created)**:
+  ```json
+  {
+    "status": "success",
+    "message": "Article ingested successfully",
+    "data": {
+      "article_id": "art_abcdef12"
+    }
+  }
+  ```
+
+### 6.3 Get Admin Metrics (KPI Dashboard)
+- **Endpoint**: `GET /admin/metrics`
+- **Authentication**: JWT Required (Admin)
+- **Response (200 OK)**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "total_users": 150,
+      "premium_users": 45,
+      "total_articles": 1250,
+      "scrapers_online": 3,
+      "active_alerts": 85
+    }
+  }
+  ```
+
+### 6.4 Fetch Admin Review Queue
+- **Endpoint**: `GET /admin/review`
+- **Authentication**: JWT Required (Admin)
+- **Query Parameters**:
+  - `status` (string, optional, defaults to 'pending', can be 'pending', 'approved', 'rejected')
+- **Response (200 OK)**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "items": [
+        {
+          "id": "rev_art_776655",
+          "article_id": "art_776655",
+          "title": "Low Confidence Article Title",
+          "summary": "This article text did not pass the LLM confidence threshold.",
+          "source_url": "https://borderline.local/news/123",
+          "reason": "Classifier confidence 0.65 < threshold 0.85",
+          "proposed_jurisdiction": "US",
+          "proposed_tags": ["Family"],
+          "confidence": 0.65,
+          "status": "pending",
+          "created_at": "2026-06-25T14:30:00Z"
+        }
+      ]
+    }
+  }
+  ```
+
+### 6.5 Approve Review Queue Item
+- **Endpoint**: `POST /admin/review/{review_id}/approve`
+- **Authentication**: JWT Required (Admin)
+- **Request Body**:
+  ```json
+  {
+    "notes": "Reviewed and tags confirmed"
+  }
+  ```
+- **Response (200 OK)**:
+  ```json
+  {
+    "status": "success",
+    "message": "Review item approved"
+  }
+  ```
+
+### 6.6 Reject Review Queue Item
+- **Endpoint**: `POST /admin/review/{review_id}/reject`
+- **Authentication**: JWT Required (Admin)
+- **Request Body**:
+  ```json
+  {
+    "notes": "Spam or unrelated press release"
+  }
+  ```
+- **Response (200 OK)**:
+  ```json
+  {
+    "status": "success",
+    "message": "Review item rejected"
   }
   ```

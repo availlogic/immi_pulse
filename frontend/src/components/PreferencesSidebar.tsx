@@ -71,7 +71,7 @@ export function PreferencesSidebar({ jurisdictions, tags, digestFrequency, onCha
 
             <p style={{ marginTop: 16 }}>
                 <button className="btn btn-primary" onClick={() => navigate('/settings')}>
-                    Save Preferences
+                    Manage Settings
                 </button>
             </p>
         </aside>

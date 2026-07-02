@@ -318,3 +318,81 @@ def test_ttl_cleanup_removes_old_articles():
         with conn.cursor() as cur:
             cur.execute("SELECT id FROM articles WHERE id = %s", (article_id,))
             assert cur.fetchone() is None
+
+
+def test_int_ing_04_global_deduplication():
+    """AC-DED-03: Deduplication operates on a global scope, checking against database records across all jurisdictions."""
+    p = _pipeline_with_high_confidence_tagger()
+    base = _id("int_ing_global")
+    article = (
+        "Global Immigration Update: Universal Nomad Visa launched for digital workers."
+    )
+
+    with connect() as conn:
+        _ensure_jurisdiction(conn, "CA", "Canada")
+        _ensure_jurisdiction(conn, "US", "United States")
+
+    # Ingest the article under Canada (CA)
+    stats1 = _run_with_items(p, [(base + "_ca", article, "CA", f"https://int-ing-test/global/ca-{base}")])
+    assert stats1["unique"] >= 1
+
+    # Wait to avoid identical pub date issues
+    time.sleep(2)
+
+    # Try to ingest the same article under US (US) -> must be discarded as global duplicate
+    stats2 = _run_with_items(p, [(base + "_us", article, "US", f"https://int-ing-test/global/us-{base}")])
+    assert stats2["duplicate"] >= 1
+
+
+def _low_confidence_tagger() -> Tagger:
+    from llm import TagResult
+
+    class _LC(Tagger):
+        def tag(self, title, body, declared_jurisdiction):
+            return TagResult(
+                jurisdiction=declared_jurisdiction,
+                feature_tags=[],
+                confidence=0.50,
+            )
+
+    return _LC()
+
+
+def test_int_ing_05_review_queue_persisted():
+    """PRD §11.3: Borderline items are routed to admin queue, but the article is still persisted in DB."""
+    cfg = load_config()
+    p = Pipeline(
+        config=cfg,
+        embedding_client=MockEmbeddingClient(),
+        checker=FiftyPercentChecker(),
+        tagger=_low_confidence_tagger(),
+    )
+    base = _id("int_ing_review")
+    article_text = "Borderline classification news article."
+
+    with connect() as conn:
+        _ensure_jurisdiction(conn, "US", "United States")
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM admin_review_queue WHERE id LIKE 'rev_int_ing_review%'")
+        conn.commit()
+
+    # Process item via pipeline
+    stats = _run_with_items(p, [(base, article_text, "US", f"https://int-ing-test/review/{base}")])
+    assert stats.get("review", 0) == 1
+
+    # Verify that the article is persisted in articles table AND queued in admin_review_queue
+    with connect() as conn:
+        with conn.cursor() as cur:
+            # The article ID will be prefixed with 'art_' inside _run_with_items pipeline process.
+            # Let's find it by source_url.
+            cur.execute("SELECT id, title, tagging_confidence FROM articles WHERE source_url = %s", (f"https://int-ing-test/review/{base}",))
+            article_row = cur.fetchone()
+            assert article_row is not None
+            art_id = article_row["id"]
+            assert article_row["tagging_confidence"] == 0.50
+
+            cur.execute("SELECT id, status, confidence FROM admin_review_queue WHERE article_id = %s", (art_id,))
+            queue_row = cur.fetchone()
+            assert queue_row is not None
+            assert queue_row["status"] == "pending"
+            assert queue_row["confidence"] == 0.50

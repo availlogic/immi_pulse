@@ -21,9 +21,9 @@ def connect() -> Iterator[psycopg.Connection]:
 
 
 def fetch_recent_candidates(
-    conn: psycopg.Connection, jurisdiction_code: str, days: int = 60
+    conn: psycopg.Connection, days: int = 60
 ) -> list[dict]:
-    """Return recent articles within TTL window for a jurisdiction (embedding + content).
+    """Return recent articles within TTL window across all jurisdictions (embedding + content).
 
     Stage 5.4.3: the `embedding` column is now HALFVEC. We cast to text
     for safe parsing back into Python on the client.
@@ -35,11 +35,10 @@ def fetch_recent_candidates(
                    publication_date, origin_jurisdiction
             FROM articles
             WHERE publication_date >= NOW() - (%s || ' days')::interval
-              AND origin_jurisdiction = %s
             ORDER BY publication_date DESC
-            LIMIT 200
+            LIMIT 500
             """,
-            (days, jurisdiction_code),
+            (days,),
         )
         return cur.fetchall()
 

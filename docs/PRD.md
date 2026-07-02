@@ -127,7 +127,7 @@ The GA release of ImmiPulse delivers on the three core product vision principles
 
 ### 11.5 Delivery & Notification Service
 - **Personalized Feed Generation**: Dynamically construct the dashboard feed based on preferences, limiting the returned array to a maximum of 10 items.
-- **Diversity Algorithm**: In any generated feed or push newsletter, **no single jurisdiction may have more than 2 items** in the final 10-item list, ensuring content diversity.
+- **Diversity Algorithm**: In any generated feed or push newsletter, **no single jurisdiction may have more than 2 items** in the final 10-item list, ensuring content diversity. *(Note: If a user selects a narrow preference profile, e.g. 1-4 countries, the max-2-per-jurisdiction constraint will naturally restrict the feed to fewer than 10 total items. This is an expected constraint interaction, prioritizing diversity over feed filling).*
 - **Email Digest Broker**: Cron-triggered service compiling the top 10 personalized, diversity-filtered news items into daily or weekly emails for Basic and Premium users.
 - **Premium Keyword Alerts Broker**: Scan incoming non-duplicate articles for Premium users' keywords. Dispatch real-time email alerts immediately upon matching.
 

@@ -187,9 +187,20 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
 
             // Check if the article already exists.
             const artRes = await query<{ id: string }>('SELECT id FROM articles WHERE id = $1', [rq.article_id]);
-            if (!artRes.rowCount) {
-                // Article was queued for review but not yet inserted. Insert
-                // it now with the admin-approved tags and confidence 1.0.
+            if (artRes.rowCount) {
+                // Article was queued for review and exists. Update it to set confidence to 1.0
+                // (approving it) and use the proposed tags/jurisdiction.
+                await query(
+                    `UPDATE articles
+                     SET tagging_confidence = 1.0,
+                         tagger_provider = 'admin-override',
+                         tags = $1::varchar[],
+                         origin_jurisdiction = $2
+                     WHERE id = $3`,
+                    [rq.proposed_tags, rq.proposed_jurisdiction, rq.article_id]
+                );
+            } else {
+                // Fallback for legacy seeded reviews where the article was not pre-inserted.
                 await query(
                     `INSERT INTO articles (
                         id, title, raw_content, summary, publication_date, source_url,
@@ -209,6 +220,9 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
                     ]
                 );
             }
+
+            // Emit the notification so the broker dispatches keyword alerts for the approved article.
+            await query("SELECT pg_notify('new_article', $1)", [rq.article_id]);
 
             await query(
                 `UPDATE admin_review_queue
@@ -239,15 +253,16 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
             const reviewId = req.params.id;
             const notes = req.body?.notes ?? null;
 
-            const rqRes = await query<{ id: string; status: string }>(
-                `SELECT id, status FROM admin_review_queue WHERE id = $1`,
+            const rqRes = await query<{ id: string; status: string; article_id: string }>(
+                `SELECT id, status, article_id FROM admin_review_queue WHERE id = $1`,
                 [reviewId]
             );
             if (!rqRes.rowCount) {
                 return reply.code(404).send({ status: 'error', message: 'Review item not found' });
             }
-            if (rqRes.rows[0].status !== 'pending') {
-                return reply.code(409).send({ status: 'error', message: `Review item already ${rqRes.rows[0].status}` });
+            const rq = rqRes.rows[0];
+            if (rq.status !== 'pending') {
+                return reply.code(409).send({ status: 'error', message: `Review item already ${rq.status}` });
             }
 
             await query(
@@ -259,6 +274,9 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
                  WHERE id = $3`,
                 [req.auth!.sub, notes, reviewId]
             );
+
+            // Delete the article from articles so it is completely hidden and cleaned up.
+            await query('DELETE FROM articles WHERE id = $1', [rq.article_id]);
 
             return reply.code(200).send({
                 status: 'success',

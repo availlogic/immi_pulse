@@ -142,6 +142,27 @@ class Pipeline:
 
         # Stage 4.10: low-confidence items go to the review queue only.
         if tag_result.confidence < self.config.llm_review_threshold:
+            # We still persist the article (so the admin can review it with full context)
+            # but we set notify=False so keyword alerts do not dispatch yet.
+            insert_article(
+                conn,
+                article_id=article_id,
+                title=normalized.title,
+                raw_content=normalized.raw_content,
+                summary=normalized.summary,
+                publication_date=normalized.publication_date,
+                source_url=normalized.source_url,
+                origin_jurisdiction=normalized.origin_jurisdiction,
+                publisher_authority=normalized.publisher_authority,
+                embedding=embedding,
+                tags=merged_tags,
+                is_analysis=decision.is_analysis,
+                parent_article_id=decision.parent_article_id,
+                alternative_sources=normalized.alternative_sources,
+                notify=False,
+                tagging_confidence=tag_result.confidence,
+                tagger_provider=self.tagger_provider,
+            )
             self._enqueue_for_review(
                 conn,
                 article_id=article_id,
@@ -203,9 +224,9 @@ class Pipeline:
                     confidence,
                 ),
             )
-        # Note: we do NOT call insert_article here; the review queue row
-        # is the audit trail. The actual article is inserted by an admin
-        # when they approve it (POST /admin/review/:id/approve).
+        # Note: we call insert_article first with notify=False so the
+        # article is persisted in the articles table. The admin approves the
+        # review row, updates tagging_confidence to 1.0, and triggers keyword alerts.
 
     def _normalize(self, item: ScrapedItem) -> NormalizedArticle:
         if not item.source_url or not item.source_url.startswith(("http://", "https://")):
@@ -231,7 +252,7 @@ class Pipeline:
         )
 
     def _dedupe(self, conn, item: NormalizedArticle, embedding: list[float]) -> DedupeDecision:
-        parents = fetch_recent_candidates(conn, item.origin_jurisdiction, days=self.config.ttl_days)
+        parents = fetch_recent_candidates(conn, days=self.config.ttl_days)
         scored: list[ScoredCandidate] = []
         for row in parents:
             try:

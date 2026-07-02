@@ -74,15 +74,33 @@ export function DashboardFeed() {
         };
     }, [isAuthenticated, view]);
 
+    async function handlePreferencesChange(next: typeof preferences) {
+        setPreferences(next);
+        try {
+            await api.putPreferences({
+                preferred_jurisdictions: next.jurisdictions,
+                preferred_tags: next.tags,
+                digest_frequency: next.digestFrequency,
+            });
+            // Re-fetch feed to apply updated preferences.
+            const feed = await api.getFeed(10, view);
+            setArticles(feed.articles);
+        } catch (err) {
+            showToast('Failed to save preferences: ' + (err as Error).message, 'error');
+        }
+    }
+
     const activeJurisdictions = useMemo(() => preferences.jurisdictions, [preferences.jurisdictions]);
     const activeTags = useMemo(() => preferences.tags, [preferences.tags]);
 
     function removeJurisdiction(code: string) {
-        setPreferences((p) => ({ ...p, jurisdictions: p.jurisdictions.filter((j) => j !== code) }));
+        const next = { ...preferences, jurisdictions: preferences.jurisdictions.filter((j) => j !== code) };
+        handlePreferencesChange(next);
     }
 
     function removeTag(tag: string) {
-        setPreferences((p) => ({ ...p, tags: p.tags.filter((t) => t !== tag) }));
+        const next = { ...preferences, tags: preferences.tags.filter((t) => t !== tag) };
+        handlePreferencesChange(next);
     }
 
     const sidebarLockedJurisdictions = activeJurisdictions.length > 0
@@ -175,7 +193,7 @@ export function DashboardFeed() {
                         jurisdictions={activeJurisdictions}
                         tags={activeTags}
                         digestFrequency={preferences.digestFrequency}
-                        onChange={setPreferences}
+                        onChange={handlePreferencesChange}
                     />
                 )}
             </div>
@@ -194,7 +212,7 @@ export function DashboardFeed() {
                             jurisdictions={activeJurisdictions}
                             tags={activeTags}
                             digestFrequency={preferences.digestFrequency}
-                            onChange={setPreferences}
+                            onChange={handlePreferencesChange}
                         />
                     </div>
                 </div>

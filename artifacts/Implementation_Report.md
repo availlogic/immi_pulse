@@ -213,15 +213,11 @@ artifacts/Documentation_Conflict_Report.md
 
 ## Technical Debt
 
-1. **HNSW index for 3072-dim vectors** (see Known Limitation 5). Recommended
-   fix: alter `articles.embedding` to `HALFVEC(3072)` and recreate index.
+1. **HNSW index for 3072-dim vectors**: Successfully implemented using pgvector `HALFVEC(3072)` type and `halfvec_cosine_ops` to support HNSW index within dimension limits.
 2. **TypeScript strict mode flags**: project compiles with `strict: true` but
    does not enable `noUncheckedIndexedAccess`; some array accesses could be
    tightened.
-3. **Backend uses `scrypt` for password hashing** (Node stdlib) instead of
-   `bcrypt`/`argon2id` mentioned in `Architecture.md §5`. This is a deliberate
-   choice to minimize native dependencies, but the docs reference should be
-   updated for production parity.
+3. **Password Hashing**: Backend successfully uses `argon2id` (via `@node-rs/argon2`) as recommended in `Architecture.md §5` for optimal password hashing security.
 4. **Test cleanup**: Integration tests rely on hardcoded ID prefixes and
    source-URL patterns. A more robust approach would use Postgres schemas
    per-test-run.

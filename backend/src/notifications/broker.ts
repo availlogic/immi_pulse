@@ -77,12 +77,28 @@ async function checkScraperFailures(): Promise<void> {
          HAVING COUNT(*) >= 2`,
         [String(windowHours)]
     );
+    const { sendEmail } = await import('./mailer.js');
     for (const row of result.rows) {
         // eslint-disable-next-line no-console
         console.warn(
             `[broker] scraper failure alert: ${row.scraper_name} failed ${row.failures} times ` +
                 `within ${windowHours}h (last: ${row.last_failure?.toISOString() ?? 'n/a'})`
         );
+        try {
+            await sendEmail({
+                to: 'admin@immipulse.local',
+                subject: `[ImmiPulse Alert] Scraper Failure: ${row.scraper_name}`,
+                text: `Scraper ${row.scraper_name} has failed ${row.failures} times in the last ${windowHours} hours.\n` +
+                      `Last failure occurred at: ${row.last_failure?.toISOString() ?? 'n/a'}.\n` +
+                      `Please inspect scraper logs immediately.`,
+                html: `<p>Scraper <strong>${row.scraper_name}</strong> has failed <strong>${row.failures}</strong> times in the last ${windowHours} hours.</p>` +
+                      `<p>Last failure occurred at: <code>${row.last_failure?.toISOString() ?? 'n/a'}</code>.</p>` +
+                      `<p>Please inspect scraper logs immediately.</p>`
+            });
+        } catch (mailErr) {
+            // eslint-disable-next-line no-console
+            console.error(`[broker] failed to send email alert for scraper=${row.scraper_name}:`, mailErr);
+        }
     }
 }
 
@@ -94,6 +110,11 @@ async function handleNewArticle(articleId: string): Promise<void> {
     try {
         const article = await fetchArticleById(articleId);
         if (!article) return;
+
+        // If the article has low confidence, skip alert dispatch (wait for admin approval)
+        if (article.tagging_confidence !== null && article.tagging_confidence < 0.85) {
+            return;
+        }
 
         // Dispatch keyword alerts for this single article (synchronous).
         const sent = await dispatchKeywordAlertsForArticle(article);
