@@ -9,7 +9,7 @@
     "dev": "node --import tsx --watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "test:unit": "vitest run tests/unit",
-    "test:integration": "DATABASE_URL=postgres://immipulse:immipulse_dev@localhost:5432/immipulse vitest run tests/integration",
+    "test:integration": "vitest run tests/integration",
     "test": "vitest run",
     "lint": "tsc --noEmit"
   },

@@ -3,10 +3,29 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from dateutil import parser as date_parser
+
+TZINFOS = {
+    "BST": timezone(timedelta(hours=1)),
+    "AEST": timezone(timedelta(hours=10)),
+    "NZST": timezone(timedelta(hours=12)),
+    "SGT": timezone(timedelta(hours=8)),
+    "IST": timezone(timedelta(hours=1)),
+    "MYT": timezone(timedelta(hours=8)),
+    "PHT": timezone(timedelta(hours=8)),
+    "GST": timezone(timedelta(hours=4)),
+    "AST": timezone(timedelta(hours=-4)),
+    "HKT": timezone(timedelta(hours=8)),
+    "MEZ": timezone(timedelta(hours=1)),
+    "MESZ": timezone(timedelta(hours=2)),
+    "CEST": timezone(timedelta(hours=2)),
+    "WEST": timezone(timedelta(hours=1)),
+    "TRT": timezone(timedelta(hours=3)),
+    "BRT": timezone(timedelta(hours=-3)),
+}
 
 
 def parse_publication_date(raw: str | datetime | None) -> datetime:
@@ -29,7 +48,7 @@ def parse_publication_date(raw: str | datetime | None) -> datetime:
         # Chinese full-form published-at markers (发布时间, 发布于).
         text = re.sub(r"^\s*(发布时间|发布于|公開日|게시일)\s*[:：]?\s*", "", text)
         try:
-            dt = date_parser.parse(text, fuzzy=True)
+            dt = date_parser.parse(text, fuzzy=True, tzinfos=TZINFOS)
         except (ValueError, TypeError, OverflowError) as exc:
             raise ValueError(f"unparseable publication date: {raw!r}") from exc
 
