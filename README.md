@@ -85,16 +85,62 @@ docker compose up -d
 *(If you update your `.env` file later, you must run `docker compose up -d` again to apply the changes to the containers. `docker compose restart` is not sufficient!)*
 
 ### 4. Setup n8n AI News Ingestion Pipeline
-The project delegates data fetching, semantic deduplication, and AI scoring to **n8n**. To initialize this pipeline:
+The project delegates data fetching, semantic deduplication, and AI scoring to **n8n**.
 
 1. **Access n8n**: Open `http://localhost:5678` (or your server's equivalent).
 2. **Import Workflow**: 
    - Go to **Workflows** -> **Add Workflow** -> **Import from File**.
    - Select the `n8n_workflow.json` file provided in this repository root.
-3. **Configure Database Credentials**:
-   - Create a new PostgreSQL credential (`Host`: `postgres`, `Database`: `immipulse`).
+3. **Understand and Configure the Nodes**:
+   Below is the detailed explanation and configuration guide for every node in the imported workflow.
+
+   * **Schedule Trigger**: 
+     - **Purpose**: Runs the workflow automatically every 4 hours.
+     - **Action**: None required (unless you want to change the frequency).
+   
+   * **RSS Feed Read**:
+     - **Purpose**: Fetches the latest news articles from an RSS source.
+     - **Action (Required)**: Double-click the node and replace the default `URL` with your actual RSS feed URL (e.g., a Google Alerts RSS link).
+   
+   * **Level 1 Dup Check (Postgres)**:
+     - **Purpose**: Queries the database to check if the exact URL has already been ingested.
+     - **Action (Required)**: Double-click the node, go to *Credential to connect with*, create a new credential (`Host`: `postgres`, `Database`: `immipulse`, User/Pass from your `.env`).
+   
+   * **Is Duplicate (URL)? (If Node)**:
+     - **Purpose**: Branches the workflow. If the URL exists, it stops processing to save AI costs. If it's new, it continues.
+     - **Action**: None required.
+   
+   * **TEI Generate Embeddings (HTTP Request)**:
+     - **Purpose**: Sends the article title to your local TEI container (`http://tei-embeddings:80/embed`) to generate a 384-dimensional vector.
+     - **Action**: None required.
+   
+   * **Level 2 Semantic Check (Postgres)**:
+     - **Purpose**: Performs a vector similarity search (`<->`) against existing articles to find semantic duplicates.
+     - **Action (Required)**: Select the Postgres credential you created earlier.
+   
+   * **Is Semantic Duplicate? (If Node)**:
+     - **Purpose**: Checks if the vector distance is `< 0.12`.
+     - **Action**: None required.
+   
+   * **Insert as Child (Postgres)**:
+     - **Purpose**: If it's a semantic duplicate, it's inserted with scores of `0` and linked to the original article via `parent_id`.
+     - **Action (Required)**: Select the Postgres credential you created earlier.
+   
+   * **MiniMax LLM Enrichment (HTTP Request)**:
+     - **Purpose**: Sends the content to MiniMax (`abab6.5-chat`) for translation, tagging, multi-dimensional scoring, and analysis. It automatically authenticates using `{{$env.MINIMAX_API_KEY}}`.
+     - **Action (Optional)**: You can double-click and edit the `messages` array if you want to tweak the prompt instructions.
+   
+   * **Parse AI Output (Code)**:
+     - **Purpose**: Cleans up any markdown formatting (e.g., ` ```json `) returned by the AI and converts it into a pure JSON object.
+     - **Action**: None required.
+   
+   * **Insert Primary Item (Postgres)**:
+     - **Purpose**: Inserts the newly enriched, fully scored, and vectorized article into the database for the frontend to consume.
+     - **Action (Required)**: Select the Postgres credential you created earlier.
+
 4. **Activate**:
-   - Set up your RSS feed URL and toggle the workflow to **Active**.
+   - Once all credentials are set, click **Execute Workflow** at the bottom to run a test.
+   - Toggle the workflow button in the top right corner to **Active**.
 
 ### 5. Frontend Deployment (Cloudflare Pages)
 The Next.js frontend is deployed to Cloudflare Pages using the `wrangler` CLI.
