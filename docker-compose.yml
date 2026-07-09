@@ -58,6 +58,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://${DB_USER:-yutian}:${DB_PASSWORD}@postgres:5432/immipulse
       - DASHBOARD_API_TOKEN=${DASHBOARD_API_TOKEN}
+      - CORS_ORIGINS=${CORS_ORIGINS}
     depends_on:
       - postgres
     networks:

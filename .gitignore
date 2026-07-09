@@ -33,13 +33,22 @@ htmlcov/
 # ---- uv ----
 .uv-cache/
 
-# ---- Node.js ----
+# ---- Node.js & Frontend ----
 node_modules/
 .next/
 out/
 build/
 dist/
 *.tsbuildinfo
+.vercel/
+.wrangler/
+.cloudflare/
+/.pnp*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
 # ---- Testing ----
 coverage/

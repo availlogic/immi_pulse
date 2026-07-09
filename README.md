@@ -45,30 +45,27 @@ npm install
 npm run dev
 ```
 
-## Production Deployment (Docker Compose)
+## Production Deployment
 
 Do not run docker-compose locally unless explicitly required. The system is designed for remote server deployment.
 
-### 1. Cloudflare Tunnel Setup (CLI)
-Before starting the infrastructure, create a Cloudflare Tunnel using the `cloudflared` CLI to expose the backend API securely without opening inbound firewall ports.
+### 1. Cloudflare Zero Trust (Tunnel) Setup
+We use a remotely-managed Cloudflare Tunnel (via Zero Trust Dashboard) to expose the backend API securely.
 
-1. **Authenticate**:
-   ```bash
-   cloudflared tunnel login
-   ```
-2. **Create the Tunnel**:
-   ```bash
-   cloudflared tunnel create immipulse-backend
-   ```
-3. **Route DNS**:
-   ```bash
-   cloudflared tunnel route dns immipulse-backend api.yourdomain.com
-   ```
-4. **Get the Token**:
-   ```bash
-   cloudflared tunnel token immipulse-backend
-   ```
-   *Copy this token to use in the next step.*
+1. **Create the Tunnel**:
+   - Go to [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) -> **Networks** -> **Tunnels**.
+   - Click **Add a tunnel** -> Select **Cloudflared**.
+   - Name it (e.g., `immipulse-backend`).
+   - Copy the `TUNNEL_TOKEN` provided in the Docker installation command.
+
+2. **Configure the Public Hostname (Route Traffic)**:
+   - In the Tunnel settings, go to the **Routes** (or Public Hostnames) tab.
+   - Click **Add route** -> **Published application**.
+   - **Subdomain**: e.g., `immipulse-api`
+   - **Domain**: Select your domain (e.g., `maxithome.com`)
+   - **Service Type**: `HTTP`
+   - **Service URL**: `backend:8000` (Crucial: use the docker service name)
+   - Save the route.
 
 ### 2. Environment Configuration
 Create and configure your `.env` file in the project root:
@@ -76,60 +73,55 @@ Create and configure your `.env` file in the project root:
 cp .env.example .env
 ```
 Ensure you configure:
-- Strong database passwords (`DB_USER`, `DB_PASSWORD`)
-- Cloudflare Tunnel token (`TUNNEL_TOKEN`) using the token extracted above.
-- MiniMax API Key (`MINIMAX_API_KEY`) for AI processing.
-- API Token (`DASHBOARD_API_TOKEN`) for securing backend endpoints.
+- `TUNNEL_TOKEN`: The token you copied from Cloudflare Zero Trust.
+- `CORS_ORIGINS`: The exact URL of your frontend (e.g., `https://immipulse-frontend.maxithome.com`). This ensures the browser allows cross-origin requests.
+- `MINIMAX_API_KEY` and database credentials.
 
-### 3. Start the Infrastructure
-Deploy the entire stack, including PostgreSQL (pgvector), local TEI embeddings container, n8n, FastAPI backend, and Cloudflare Tunnel:
+### 3. Start the Backend Infrastructure
+Deploy the entire stack, including PostgreSQL, TEI, n8n, FastAPI backend, and Cloudflare Tunnel:
 ```bash
 docker compose up -d
 ```
-*Note: The backend API will be securely exposed via Cloudflare Tunnel. The n8n automation UI will be accessible locally/internally on port `5678`.*
+*(If you update your `.env` file later, you must run `docker compose up -d` again to apply the changes to the containers. `docker compose restart` is not sufficient!)*
 
 ### 4. Setup n8n AI News Ingestion Pipeline
 The project delegates data fetching, semantic deduplication, and AI scoring to **n8n**. To initialize this pipeline:
 
-1. **Access n8n**: Open `http://localhost:5678` (or your server's equivalent) in your browser.
+1. **Access n8n**: Open `http://localhost:5678` (or your server's equivalent).
 2. **Import Workflow**: 
-   - Go to **Workflows** -> **Add Workflow**.
-   - Click the **...** menu in the top right -> **Import from File**.
+   - Go to **Workflows** -> **Add Workflow** -> **Import from File**.
    - Select the `n8n_workflow.json` file provided in this repository root.
 3. **Configure Database Credentials**:
-   - Double-click any `Postgres` node in the imported workflow.
-   - Under *Credential to connect with*, create a new credential:
-     - **Host**: `postgres` (internal Docker hostname)
-     - **Database**: `immipulse`
-     - **User/Password**: Use values from your `.env` file.
-4. **Set Data Source**:
-   - Double-click the **RSS Feed Read** node.
-   - Replace the URL with your desired RSS feed (e.g., Google Alerts RSS).
-5. **Activate**:
-   - Click **Execute Workflow** to test the pipeline.
-   - Toggle the workflow to **Active** (runs automatically every 4 hours).
+   - Create a new PostgreSQL credential (`Host`: `postgres`, `Database`: `immipulse`).
+4. **Activate**:
+   - Set up your RSS feed URL and toggle the workflow to **Active**.
 
-### 5. Frontend Deployment (Cloudflare Pages CLI)
-The Next.js frontend is designed to be deployed at the edge via Cloudflare Pages using the `wrangler` CLI.
+### 5. Frontend Deployment (Cloudflare Pages)
+The Next.js frontend is deployed to Cloudflare Pages using the `wrangler` CLI.
 
-1. **Authenticate Wrangler**:
-   ```bash
-   npx wrangler login
-   ```
-2. **Install Dependencies and Build**:
+1. **Prepare Environment Variables**:
+   Because the frontend package is configured to use `dotenv-cli`, you do **NOT** need a separate `.env` file in the frontend directory. The build process automatically reads from the globally unique `../.env` file in your root folder. Just ensure `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_DASHBOARD_API_TOKEN` are set correctly in your root `.env`.
+
+2. **Build the Static Export**:
+   Make sure `next.config.mjs` has `output: 'export'` configured.
    ```bash
    cd frontend
    npm install
    npm run build
    ```
+   *This will generate an `out` directory containing the static HTML/JS/CSS.*
+
 3. **Deploy using Wrangler**:
-   Deploy the static export output directory (`out` or `.next`) directly to Cloudflare Pages. Note: We use `--commit-dirty=true` to deploy local changes.
+   Deploy the `out` directory to Cloudflare Pages.
    ```bash
-   npx wrangler pages deploy .next \
+   npx wrangler pages deploy out \
      --project-name=immipulse-frontend \
      --commit-dirty=true
    ```
-   *(Note: For setting environment variables `NEXT_PUBLIC_API_URL` and `DASHBOARD_API_TOKEN` for the Pages project, use `npx wrangler pages secret put <NAME>` or configure them directly via `wrangler.toml`.)*
+
+4. **Bind Custom Domain (Optional)**:
+   - In the Cloudflare Dashboard, go to **Workers & Pages** -> your project -> **Custom Domains**.
+   - Set up your custom domain (e.g., `immipulse-frontend.maxithome.com`).
 
 ## Design & Usage Workflow
 - **Development**: All code follows strict TDD (Test-Driven Development) methodologies.
