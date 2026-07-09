@@ -56,7 +56,7 @@ services:
     container_name: immipulse-backend
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://${DB_USER:-yutian}:${DB_PASSWORD}@postgres:5432/immipulse
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-yutian}:${DB_PASSWORD}@postgres:5432/immipulse
       - DASHBOARD_API_TOKEN=${DASHBOARD_API_TOKEN}
     depends_on:
       - postgres
