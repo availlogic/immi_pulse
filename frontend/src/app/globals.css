@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap');
+
+:root {
+  /* Colors */
+  --color-blue-primary: hsl(205, 85%, 45%);
+  --color-blue-light: hsl(205, 90%, 95%);
+  --color-amber-accent: hsl(38, 95%, 52%);
+  --color-amber-soft: hsl(38, 100%, 96%);
+  --color-bg-base: hsl(35, 20%, 98%);
+  --color-bg-surface: hsl(0, 0%, 100%);
+  --color-text-main: hsl(210, 24%, 16%);
+  --color-text-muted: hsl(210, 16%, 46%);
+  --color-success: hsl(142, 60%, 40%);
+  --color-success-bg: hsl(142, 60%, 94%);
+  --color-warning: hsl(20, 85%, 55%);
+  --color-warning-bg: hsl(20, 85%, 96%);
+  --color-border: hsl(210, 20%, 90%);
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+
+  /* Layout */
+  --radius-card: 12px;
+  --radius-drawer: 16px;
+  --header-height: 64px;
+  --sidebar-width: 260px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-main);
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', system-ui, sans-serif;
+  color: var(--color-text-main);
+}
+
+h1 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 1.25rem;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: 1.1rem;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Utilities */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.score-green {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+.score-orange {
+  background-color: var(--color-amber-soft);
+  color: var(--color-warning);
+}
+.score-red {
+  background-color: var(--color-warning-bg);
+  color: var(--color-text-muted);
+}

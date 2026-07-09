@@ -1,90 +1,156 @@
-# ImmiPulse - Integration Test Cases
+# Integration Test Cases: Yutian Immigration AI Newsroom (ImmiPulse)
 
-## 1. Authentication Integration (INT-AUTH)
-
-### INT-AUTH-01: Login Scheme and Token Integrity
-- **Boundary**: Frontend Web ↔ API Gateway ↔ Database
-- **Preconditions**: User credentials `test@example.com` / `Password123!` exist in PostgreSQL.
-- **Trigger**: Client dispatches `POST /auth/login` request.
-- **Validation Steps**:
-  1. Verify the API Gateway issues a HTTP `200 OK` response.
-  2. Parse the returned JSON; verify the JWT token is present in the `data.token` path.
-  3. Decode the JWT header and verify the payload contains correct fields: `sub` (User ID matching the database record) and `role` (`basic`).
-  4. Attempt to access a protected route (`GET /user/preferences`) without the token; verify HTTP `401 Unauthorized` is returned.
-- **Priority**: Critical
+This document specifies the integration-level test cases to verify systems boundaries, database integrity, API contract conformity, processing pipelines, and data retention cron jobs for **ImmiPulse**.
 
 ---
 
-## 2. Ingestion & Deduplication Pipeline (INT-ING)
+## 1. FastAPI Backend API & Auth Verification (IT-001)
 
-### INT-ING-01: Global Deduplication & Discard Verification (TTL Boundary)
-- **Boundary**: Ingestion Service ↔ PostgreSQL Database
-- **Preconditions**:
-  - Configurable TTL window is set to 30 days.
-  - Database contains an article from Canada published on July 1st.
-  - Target scraper fetches a duplicate Canada article on July 5th (within the 30-day window).
-- **Trigger**: Ingestion service executes its cron job.
-- **Validation Steps**:
-  1. Verify the ingestion service calculates a cosine similarity of $\ge 0.88$ for the new item.
-  2. Verify the 50% Difference check registers less than 50% commentary variation.
-  3. Verify the duplicate article is discarded and **not stored** as a new row in PostgreSQL.
-  4. Verify the `scraper_logs` table logs the operation with a status of `success` and increments the items processed count.
-- **Priority**: Critical
+### IT-001-TC-001: Token-Based Authentication Middleware
+* **Objective**: Ensure the backend rejects unauthorized and invalid requests while accepting valid bearer tokens.
+* **Setup**: Deploy FastAPI container with environment `DASHBOARD_API_TOKEN=secret_key`.
+* **Execution**:
+  1. Send `GET /api/news` with no `Authorization` header.
+  2. Send `GET /api/news` with header `Authorization: Bearer wrong_token`.
+  3. Send `GET /api/news` with header `Authorization: Bearer secret_key`.
+* **Expected Result**:
+  1. Request 1 returns `401 Unauthorized` with status payload.
+  2. Request 2 returns `401 Unauthorized`.
+  3. Request 3 returns `200 OK` with paginated payload envelope.
+* **Traceability**: [API-Spec: Section 1](file:///Users/victorxu/projects/immi_pulse/docs/API_Spec.md#L7)
 
-### INT-ING-02: 50% Difference Principle Analysis Split
-- **Boundary**: Ingestion Service ↔ Enrichment LLM ↔ PostgreSQL Database
-- **Preconditions**:
-  - Database contains an official press release regarding a points draw for Germany.
-  - Scraper ingests a blog published by a law firm containing the same raw draw statistics, but adds over $50\%$ new text outlining legal relocation strategies.
-- **Trigger**: Ingestion service executes its cron job.
-- **Validation Steps**:
-  1. Verify the cosine similarity is flagged as $\ge 0.88$ (related event).
-  2. Verify the LLM or difference processor calculates the new text variance exceeds 50%.
-  3. Verify the system saves the blog as a **new article** in the database with `is_analysis = True` and links it to the parent article using `parent_article_id`.
-- **Priority**: High
-
-### INT-ING-03: Strict Timestamping Enforcement
-- **Boundary**: Ingestion Service ↔ Database
-- **Preconditions**: Scraper parses a blog written on October 3rd detailing a policy change that was enacted on September 1st.
-- **Trigger**: Ingestion service processes the parsed item.
-- **Validation Steps**:
-  1. Verify the normalizer parses the publication timestamp as October 3rd.
-  2. Verify the item is written to PostgreSQL with `publication_date = '2026-10-03'`.
-  3. Verify that index lookups and TTL cleanups evaluate the item based on the October 3rd date.
-- **Priority**: High
+### IT-001-TC-002: Route Validation & 422 Errors
+* **Objective**: Verify standard error payloads for missing or invalid parameters.
+* **Setup**: FastAPI server is online.
+* **Execution**:
+  1. Send `GET /api/news?page=abc` (invalid page type).
+  2. Send `PATCH /api/candidates/e5b8d963-c793-4b67-a84f-dc9407339d67/notes` with body `{"custom_title": "A".repeat(205)}` (exceeds 200 chars).
+* **Expected Result**:
+  1. Request 1 returns `422 Unprocessable Entity` listing validation failure details.
+  2. Request 2 returns `422 Unprocessable Entity` with details: `"String length must not exceed 200 characters."`.
+* **Traceability**: [API-Spec: Section 3.7](file:///Users/victorxu/projects/immi_pulse/docs/API_Spec.md#L302)
 
 ---
 
-## 3. Feed Generation & Constraints (INT-FEED)
+## 2. API ↔ Database Consistency & Aggregations (IT-002)
 
-### INT-FEED-01: Dynamic Preferences & Feed Diversity
-- **Boundary**: Client ↔ API Gateway ↔ PostgreSQL
-- **Preconditions**:
-  - User has preferred jurisdictions: `US`, `CA`.
-  - Database has 5 articles from the US, 5 from Canada, and 5 from Australia.
-- **Trigger**: Client dispatches `GET /feed` with user's JWT token.
-- **Validation Steps**:
-  1. Verify the SQL query uses the preferred jurisdictions to filter the articles table.
-  2. Verify the API Gateway runs the Diversity Algorithm on the returned query rows.
-  3. Verify the final returned JSON contains a maximum of 10 items.
-  4. Verify the JSON contains at most 2 items from the US and at most 2 from Canada, even though more matching items are present.
-  5. Verify no articles from Australia are returned.
-- **Priority**: Critical
+### IT-002-TC-001: Calculated Stars joining candidates table
+* **Objective**: Verify that the API output returns correct `is_starred` values by performing joining logic on the database.
+* **Setup**: 
+  * News item A (`id: e5b8d963-c793-4b67-a84f-dc9407339d67`) exists in `news_items` database.
+  * Candidates table is empty.
+* **Execution**:
+  1. Call `GET /api/news`. Check `is_starred` for News item A.
+  2. Call `POST /api/candidates/e5b8d963-c793-4b67-a84f-dc9407339d67/star`.
+  3. Call `GET /api/news` again. Check `is_starred` for News item A.
+* **Expected Result**:
+  * Step 1 returns `is_starred: false`.
+  * Step 2 succeeds returning `201 Created` and inserts a candidate row linking to the news item.
+  * Step 3 returns `is_starred: true` (verifies backend joining logic).
+* **Traceability**: [Test-Strategy: Issue 5.3](file:///Users/victorxu/projects/immi_pulse/docs/Test-Strategy.md#L129), [API-Spec: Section 3.1](file:///Users/victorxu/projects/immi_pulse/docs/API_Spec.md#L87)
+
+### IT-002-TC-002: Calculated duplicate_count aggregation on parent_id
+* **Objective**: Verify that the backend aggregates similar duplicate feeds to calculate the duplicate count.
+* **Setup**:
+  * Insert primary news item A (`id: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee`, `parent_id = NULL`).
+  * Insert duplicate news item B (`parent_id = primary_id`).
+  * Insert duplicate news item C (`parent_id = primary_id`).
+* **Execution**:
+  1. Call `GET /api/news`.
+* **Expected Result**:
+  * Response contains exactly 1 story card (primary news item A).
+  * The `duplicate_count` field in the payload equals `2` (B and C).
+* **Traceability**: [Test-Strategy: Issue 5.3](file:///Users/victorxu/projects/immi_pulse/docs/Test-Strategy.md#L129), [API-Spec: Section 3.1](file:///Users/victorxu/projects/immi_pulse/docs/API_Spec.md#L88)
 
 ---
 
-## 4. Notifications & Alerts Broker (INT-NOTIF)
+## 3. Database Integrity & Index Validation (IT-003)
 
-### INT-NOTIF-01: Real-time Premium Keyword Alert Dispatch
-- **Boundary**: Database Insert Trigger ↔ Notification Broker ↔ Email Gateway
-- **Preconditions**:
-  - Premium User `user@example.com` has an active keyword alarm for Jurisdiction `United Kingdom` and Keyword `salary threshold`.
-- **Trigger**: Ingestion service inserts a new, unique article with:
-  - Title: "UK increases salary threshold for Skilled Worker Visas"
-  - Origin Jurisdiction: "UK"
-- **Validation Steps**:
-  1. Verify the database insertion event triggers the notification broker alert sweep.
-  2. Verify the broker identifies a match for user `user@example.com` on the keyword `salary threshold`.
-  3. Verify the broker dispatches a request to the transactional Email Gateway API with the user's email, summary, and source link.
-  4. Verify the email service returns HTTP `200 OK` (simulated in sandbox environment).
-- **Priority**: High
+### IT-003-TC-001: SQL Constraints & Schema Setup
+* **Objective**: Prevent database corruption by validating SQL check constraints.
+* **Setup**: Database is initialized.
+* **Execution**:
+  1. Attempt to insert news item with `video_score` = 105.
+  2. Attempt to insert news item with `chinese_relevance_score` = -10.
+  3. Attempt to insert news item with duplicate `source_url`.
+* **Expected Result**:
+  * Insertion 1 fails with DB Check Constraint Error (`CHECK (video_score BETWEEN 0 AND 100)`).
+  * Insertion 2 fails with DB Check Constraint Error (`CHECK (chinese_relevance_score BETWEEN 0 AND 100)`).
+  * Insertion 3 fails with DB Unique Constraint Violation on `source_url`.
+* **Traceability**: [Database: Section 3.1](file:///Users/victorxu/projects/immi_pulse/docs/Database.md#L98)
+
+### IT-003-TC-002: Index Performance Checks
+* **Objective**: Confirm database indexes exist and optimize querying.
+* **Execution**:
+  1. Run `EXPLAIN ANALYZE` on querying news feed:
+     ```sql
+     SELECT * FROM news_items WHERE parent_id IS NULL AND published_at > NOW() - INTERVAL '7 days';
+     ```
+  2. Run `EXPLAIN ANALYZE` on vector comparison search:
+     ```sql
+     SELECT id, title_zh FROM news_items ORDER BY title_vector <=> :input_vector LIMIT 1;
+     ```
+* **Expected Result**:
+  * Query 1 utilizes the index `idx_news_items_parent_id`.
+  * Query 2 utilizes the HNSW index `idx_news_items_title_vector` avoiding sequential tablescan.
+* **Traceability**: [Database: Section 4](file:///Users/victorxu/projects/immi_pulse/docs/Database.md#L136)
+
+---
+
+## 4. Ingestion Pipeline & Container Services (IT-004)
+
+### IT-004-TC-001: n8n ↔ Local TEI Embeddings Container
+* **Objective**: Verify that the n8n pipeline can communicate with the local HuggingFace embedding container to generate semantic vectors.
+* **Setup**: Local TEI container hosting sentence-transformers `all-MiniLM-L6-v2` is online.
+* **Execution**:
+  1. Trigger n8n logic: POST to TEI `/embed` with input `"日本高度人才新规则"`.
+* **Expected Result**:
+  * TEI returns status `200 OK`.
+  * Response returns a JSON array containing a 384-dimensional vector embedding.
+* **Traceability**: [Architecture: Section 2.5](file:///Users/victorxu/projects/immi_pulse/docs/Architecture.md#L79), [Constraints: Technology Constraints](file:///Users/victorxu/projects/immi_pulse/docs/Constraints.md#L9)
+
+### IT-004-TC-002: Level 2 pgvector Semantic De-duplication Routing
+* **Objective**: Verify that duplicate articles within 7 days are correctly linked and grouped.
+* **Setup**:
+  * News item A exists, published 2 days ago, title: *"Canada changes Express Entry points requirements"*. Vector embedding is generated and stored.
+  * Ingest a new feed item B, title: *"Canada Adjusts Express Entry Point Benchmarks"* (highly similar semantic meaning).
+* **Execution**:
+  1. Trigger the de-duplication stage in the n8n pipeline.
+  2. Query database for Item B.
+* **Expected Result**:
+  * Semantic vector comparison detects cosine distance < 0.12 (similarity > 88%).
+  * Item B is inserted into `news_items` with its `parent_id` set to Item A's `id`.
+  * Item B does not dispatch requests to the MiniMax M3 API (skips enrichment costs).
+* **Traceability**: [Architecture: Section 3.1 Sequence](file:///Users/victorxu/projects/immi_pulse/docs/Architecture.md#L92), [PRD: Section 13](file:///Users/victorxu/projects/immi_pulse/docs/PRD.md#L173)
+
+### IT-004-TC-003: MiniMax M3 Ingestion & API Wrapper
+* **Objective**: Verify correct payload generation and translation matrix mapping.
+* **Setup**: MiniMax M3 wrapper is active. n8n is processing a unique story in English.
+* **Execution**:
+  1. Dispatch the processing payload to the MiniMax API wrapper.
+* **Expected Result**:
+  * The response successfully populates the translation matrix: `title_zh` (Chinese translation), `summary_zh` (Chinese summary), and `ai_analysis` (impact evaluation).
+  * Classification tags are generated correctly in structured arrays.
+* **Traceability**: [PRD: FR-2.4](file:///Users/victorxu/projects/immi_pulse/docs/PRD.md#L119), [Architecture: Section 2.4](file:///Users/victorxu/projects/immi_pulse/docs/Architecture.md#L69)
+
+---
+
+## 5. Automated Data Purge Cron Job (IT-005)
+
+### IT-005-TC-001: Data Retention Query Rules
+* **Objective**: Verify that expired, unstarred metadata is deleted while preserving candidate references.
+* **Setup**:
+  * Ingest:
+    * Card A: published 95 days ago, NOT starred.
+    * Card B: published 95 days ago, starred as candidate (row in `candidates`).
+    * Card C: published 95 days ago, NOT starred, but is the parent of Card D (which is starred).
+    * Card E: published 20 days ago, NOT starred.
+* **Execution**:
+  1. Trigger the daily database retention query script.
+  2. Query for remaining records.
+* **Expected Result**:
+  * Card A is successfully deleted.
+  * Card B is preserved (because it is linked in the `candidates` table).
+  * Card C is preserved (because its child duplicate Card D is in `candidates`).
+  * Card E is preserved (because it is within the 90-day retention window).
+* **Traceability**: [Database: Section 5](file:///Users/victorxu/projects/immi_pulse/docs/Database.md#L160), [PRD: Section 13 Retention](file:///Users/victorxu/projects/immi_pulse/docs/PRD.md#L174)

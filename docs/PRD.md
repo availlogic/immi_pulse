@@ -1,241 +1,265 @@
-# ImmiPulse - Product Requirements Document (PRD)
+# Product Requirements Document: Yutian Immigration AI Newsroom
 
 ## 1. Executive Summary
-ImmiPulse is a vertical web application providing highly timely, multi-perspective, curated news updates in the global immigration and mobility sector. Instead of functioning as a database of static rules, ImmiPulse aggregates, tags, and semantic-deduplicates active policy updates, draws, and expert analyses across 22+ mainstream jurisdictions. Adhering to the core philosophy of "Less is More," ImmiPulse restricts the daily feed to a maximum of 10 high-quality, high-relevance items per user, ensuring each news item is accompanied by a direct link to the original official source. The platform features three user access tiers (Unregistered, Basic Free, and Premium Paid) and enforces a strict Diversity Principle to prevent any single jurisdiction from dominating the feed. This document specifies the functional, non-functional, and data-pipeline requirements for the General Availability (GA) release of ImmiPulse, built on a free open-source stack (Docker Compose, PostgreSQL, Cloudflare).
+
+The **Yutian Immigration AI Newsroom** is an AI-powered personal editorial desk designed to optimize the daily curation and topic selection workflow for the YouTube channel *"雨田在海外"* (focusing on global immigration and overseas life for Chinese audiences). The system automates the ingestion, translation, de-duplication, and grading of global immigration news. By transforming raw news feeds into a structured, prioritized database, the system reduces the creator's daily curation time from 1–2 hours down to less than 10 minutes, ensuring a sustainable pipeline of high-value topics for weekly video creation.
 
 ---
 
 ## 2. Background
-Global immigration regulations and selection criteria change constantly. Prospective immigrants, digital nomads, and corporate mobility managers struggle to keep up with these shifts. A change in draw thresholds (e.g., Canada's Express Entry) or salary limits (e.g., UK Skilled Worker visa) can occur overnight. Currently, information is scattered across government portals, law firm publications, and unregulated online forums. The result is a highly fragmented and noisy ecosystem where users are repeatedly exposed to duplicate summaries or unverified rumors.
+
+YouTube channel *"雨田在海外"* produces weekly video content analyzing immigration policy shifts, overseas living conditions, and visa pathways. Because a single creator cannot gather first-hand information globally, the channel relies on monitoring multiple online sources (government portals, law firm publications, mainstream media, and RSS feeds). 
+
+In the 2025–2026 landscape, immigration policies across traditional Western destinations (US, Canada, UK, Australia) are tightening, prompting a shift in Mainland Chinese interest toward Asian destinations (Japan, Malaysia, Singapore) and selective European residency paths (Greece, Hungary). Keeping up with these global shifts requires monitoring dozens of sources across different languages daily, which presents a significant operational bottleneck.
 
 ---
 
 ## 3. Problem Statement
-Users seeking immigration updates face three key problems:
-1. **Information Fragmentation**: Navigating dozens of government sites and corporate blogs to assemble a view of global options.
-2. **Information Overload**: Constant repetition of the same factual announcements by different agencies and intermediaries.
-3. **Trust Deficit**: Intermediaries publishing summaries without providing verifiable links to the original official sources or circulars.
+
+* **Topic Sustainability:** Maintaining a consistent, weekly schedule of high-quality video topics is difficult without dedicated news collection automation.
+* **Information Overload:** The creator spends 1–2 hours daily manually checking various immigration portals, Google Alerts, and news feeds.
+* **Low Signal-to-Noise Ratio:** Raw feeds contain high volumes of duplicate press releases, irrelevant localized news (e.g., domestic border enforcement), and announcements that do not interest Chinese audiences.
 
 ---
 
 ## 4. Product Vision Alignment
-The GA release of ImmiPulse delivers on the three core product vision principles:
-- **Timeliness First**: Daily updates ensure policy modifications are captured and made searchable without delay.
-- **Curated Delivery ("Less is More")**: Enforces a strict maximum of 10 core news items per user daily.
-- **Transparency and Trust**: Every curated item must link back directly to its original source.
+
+The Yutian Immigration AI Newsroom is not a general-purpose RSS reader or a public Content Management System (CMS). It is a private **AI Editorial Command Center** operating under the motto:
+> *Don't build a news reader. Build an AI editorial desk that helps Chinese audiences understand global immigration.*
+
+Every curated story and generated score is directly aligned with the interests of Chinese nationals seeking legal pathways for immigration, study, investment, or retirement.
 
 ---
 
 ## 5. Goals
-- Provide a unified, responsive dashboard for tracking policy changes across 22+ mainstream jurisdictions.
-- Automate data ingestion across APIs, gazettes, and web-scraping targets.
-- Implement a global semantic deduplication system with a configurable TTL to filter duplicates and discard them, preserving only unique content.
-- Enable personalized user accounts with preference-based jurisdiction and category filtering across three user levels.
-- Provide real-time high-priority alerts via email (Basic and Premium) and keyword-triggered notifications (Premium).
-- Build the system using a cost-efficient, open-source stack leveraging Cloudflare and Docker-based microservices.
+
+* **Automated Curation Pipeline:** Continuously poll, translate, and enrich news stories from RSS feeds and official portals.
+* **Time Efficiency:** Enable the creator to complete their daily news review and topic selection in under 10 minutes.
+* **High-Precision De-duplication:** Automatically cluster duplicate or highly similar press releases and articles to ensure a clean feed (target: >90% de-duplication rate).
+* **Multi-Dimensional Grading:** Leverage LLM intelligence to score articles on global importance, target audience relevance, video suitability, and long-term value (evergreen potential).
+* **Editorial Board:** Provide an interactive dashboard that lists the top stories and allows the creator to save candidate topics to a weekly planning space.
 
 ---
 
 ## 6. Non-goals
-- Building a visa eligibility calculator or automated visa recommendation engine.
-- Direct filing or application submission capabilities.
-- Providing peer-to-peer social networking or public message boards.
-- Providing direct legal or representation services.
+
+* **Full-Text Archiving:** The system does not store full article bodies, original HTML pages, images, or media files to keep database storage lightweight and avoid copyright/fair-use concerns.
+* **Direct Content Publishing:** The dashboard will not publish articles to WeChat, Xiaohongshu, YouTube, or other public platforms.
+* **Real-time Push Notifications:** The system does not send real-time alerts for every ingested news item; all workflows are batched and scheduled.
 
 ---
 
 ## 7. Target Users
-- **Skilled Professionals & Digital Nomads**: High-mobility individuals tracking points draws, income criteria, and visa pathways.
-- **Corporate HR & Mobility Teams**: Corporate talent managers tracking compliance thresholds and visa processing times to plan global hiring.
-- **Relocation Consultancies**: Professional agents using the platform to advise clients on global mobility routes.
+
+The primary user of the dashboard is the creator of the YouTube channel *"雨田在海外"*. 
+The downstream audience consuming the resulting video content includes:
+* Mainland Chinese residents looking for overseas residency options.
+* Skilled professionals and international students seeking post-study work routes or permanent residency (PR).
+* High-net-worth investors looking for asset protection and "Plan B" residency.
+* Retirees planning relocation to low-cost-of-living destinations.
+* Hong Kong talent scheme/identity holders moving assets or families.
 
 ---
 
 ## 8. Personas
-### Persona A: Sarah, the Senior Software Engineer
-- **Profile**: 32 years old, based in Brazil, seeking relocation to Canada or Germany.
-- **Needs**: Timely updates on Canada Express Entry draws and the launch details of Germany's Opportunity Card.
-- **Pain Point**: Spends hours reading repetitive Reddit posts and blog entries, trying to find actual draw cut-offs and official links.
 
-### Persona B: David, Corporate Mobility Director
-- **Profile**: Managing relocation for a mid-sized tech company with offices in the US, UK, and Singapore.
-- **Needs**: Instant notification when salary thresholds change for sponsor licenses or employment passes.
-- **Pain Point**: Must manually review law firm bulletins and check government portals to ensure the company remains compliant with hiring budgets.
+### Persona 1: Yutian (The Creator)
+* **Demographics:** 30s, YouTube content creator based overseas.
+* **Goals:** Produce one high-impact immigration video weekly. Needs timely, accurate policy updates and engaging story angles.
+* **Pain Points:** Spends hours reading raw news. Frustrated by reading the same syndicated AP/Reuters article multiple times. Struggles to judge whether a minor policy change is worth a dedicated video.
+* **Usage Pattern:** Opens the dashboard every morning around 8:00 AM. Spends 5–10 minutes checking top-scored items. Saves 2–3 candidates for the week.
+
+### Persona 2: Xiaoming (The Plan-B Seeker)
+* **Demographics:** 32, software engineer in Beijing, married with one child.
+* **Goals:** Relocate his family to a country with a good education system and clean environment. Highly interested in Japan's skilled worker visas and Canada's PR pathways.
+* **Needs:** Practical, step-by-step policy guides and realistic cost analyses. Dislikes hype or rumors.
+* **Relevance Context:** The AI scoring system must prioritize topics that address Xiaoming's questions (e.g., visa point requirements, child education, cost of living).
 
 ---
 
 ## 9. User Journeys
-### Journey 1: Registration and Preference Configuration
-1. Sarah visits ImmiPulse and views the public feed (which defaults to a global selection of all news).
-2. She clicks "Sign Up" and registers an account using email credentials.
-3. Upon logging in, she is directed to the "Subscription Settings" page.
-4. She selects `Canada` and `Germany` as her target jurisdictions, and tags `Education` and `Vacation` as her key features of interest.
-5. She saves her settings. Her home dashboard now displays only news relevant to those choices, capped at 10 items per day.
 
-### Journey 2: Keyword Alert Setup & Notification
-1. David logs into his premium corporate account.
-2. He navigates to the "Alarms" page and creates a new alert: Target Jurisdiction = `United Kingdom`, Keyword = `salary threshold`.
-3. Two days later, the UK Home Office publishes a statement raising the Skilled Worker visa threshold.
-4. The system ingests the policy, filters out duplicates, detects the keyword match, and immediately sends an email notification containing a brief summary and the official GOV.UK link to David.
+### Daily News Review Journey
+1. **Morning Intake:** Yutian opens the Dashboard on his tablet or desktop.
+2. **Top Stories Review:** The dashboard displays the "Top Stories" filtered by a combined score. Yutian sees a summary of a major policy change in Japan.
+3. **Detail Reading:** Yutian clicks the story card. A detail drawer slides open from the right side of the screen without a full page refresh.
+4. **AI Summary Analysis:** He reads the Chinese summary and the "AI Analysis" block, which highlights the specific impact on Chinese skilled workers.
+5. **Original Source Check:** He clicks the link to open the official government document in a new tab to verify details.
+6. **Save Candidate:** He clicks the Star icon (⭐ Candidate) to save it for his weekly production pool. The entire process takes 8 minutes.
+
+### Weekly Planning Journey
+1. **Topic Selection:** On Thursday, Yutian navigates to the "Saved Candidates" page.
+2. **Reviewing Starred Pool:** He reviews the 5–6 items he starred throughout the week, looking at their "Video Scores" and "Suggested Titles" generated by the AI.
+3. **Outline Drafting:** He opens the detail drawer for the selected topic and reviews the AI-generated outline, adding his own notes directly in the dashboard.
+4. **Transition to Scripting:** He copies the aggregated sources and notes into his scripting environment, ready to write the weekly YouTube video.
 
 ---
 
 ## 10. User Stories
-- **US-01**: As a registered Basic or Premium user, I want to select my target destination jurisdictions so that my dashboard and email alerts only show news relevant to my plans.
-- **US-02**: As a user, I want every news summary to display a clickable link to the official source so that I can verify its accuracy.
-- **US-03**: As a busy professional, I want my feed restricted to a maximum of 10 high-value items daily so that I do not experience information overload.
-- **US-04**: As a premium subscriber, I want to set custom keyword alerts so that I receive an immediate email notification the instant a major policy matching my criteria is published.
-- **US-05**: As a user, I want the system to enforce diversity in the feed so that no single jurisdiction dominates my daily updates.
+
+* **US-1 (Automated Ingestion):** As Yutian, I want the system to automatically collect articles from RSS feeds and government sites, so that I don't have to visit multiple websites every day.
+* **US-2 (Automatic Translation):** As Yutian, I want non-Chinese articles (e.g., from Japanese or Spanish sources) translated into Chinese, so that I can understand the policy adjustments instantly.
+* **US-3 (Language Consistency):** As Yutian, I want the system to maintain original, English, and Chinese versions of titles and summaries, so that I can verify official terminology.
+* **US-4 (Semantic De-duplication):** As Yutian, I want duplicate news reports about the same event grouped together, so that I only see a single consolidated story card on my feed.
+* **US-5 (Multi-Dimensional Scoring):** As Yutian, I want every story scored on Importance, Chinese Relevance, Video Suitability, and Evergreen value, so that I can filter out low-value alerts.
+* **US-6 (Fast Filtering):** As Yutian, I want to filter news cards instantly by Country, Topic, and Target Audience, so that I can research specific video topics.
+* **US-7 (Detail Drawer):** As Yutian, I want to read the full summary, AI analysis, and tags in a slide-out drawer without reloading the page, so that I can maintain my list scroll position.
+* **US-8 (Candidate Management):** As Yutian, I want to save candidate stories and write personal notes on them, so that I have a structured repository for video drafting.
 
 ---
 
 ## 11. Functional Requirements
 
-### 11.1 Ingestion Service
-- **Multi-Source Harvester**: Must query the U.S. Federal Register API, the New Zealand Gazette API, and run web-scraping/API ingestion tasks across 22+ mainstream jurisdictions: US, Canada, UK, Australia, New Zealand, Singapore, EU/EEA Countries (Germany, France, Spain, Portugal, Ireland, etc.), Japan, South Korea, Malaysia, Thailand, Philippines, Mexico, UAE, Turkey, Pacific and Caribbean Island Countries, Hong Kong, Macau, Taiwan, and Brazil.
-- **Scheduler**: Automated cron-based execution, configurable and running once per day by default (supporting intervals as frequent as every 4 hours for high-frequency updates).
-- **Raw Data Normalizer**: Convert diverse inputs into a standardized internal JSON schema enforcing UTF-8 encoding to support local language characters (e.g., Japanese, Korean) and standardizing localized date formats into ISO 8601 UTC format, containing:
-  - Title
-  - Raw HTML content
-  - Publication timestamp (authoritative publication date/发布时间, not the date of target events or historical context)
-  - Source URL
-  - Origin Jurisdiction
-  - Publisher Authority Rating (e.g., 5 for Government, 3 for Top Law Firm).
+### 11.1 Data Ingestion & Storage (Backend/DB)
+* **FR-1.1 (Multi-Source Support):** Support RSS ingestion from Google Alerts RSS feeds, official government portals (USCIS, IRCC, UK Home Office, Australian DHA, INZ), news agencies (Reuters, AP, BBC), and prominent immigration law firm blogs. At this stage (Phase 1), RSS feeds are the primary and sufficient data sources, with modularity to easily support other custom data sources later (e.g. scrapers, public API connectors).
+* **FR-1.2 (Scheduled Runs):** Automatic workflow executions scheduled every 3–4 hours via self-hosted n8n. The workflow must utilize an **asynchronous webhook pattern** when invoking parallel batch LLM requests to prevent execution timeouts.
+* **FR-1.3 (Storage Model):** A PostgreSQL database storing only metadata fields (no full-text bodies or media blobs).
+* **FR-1.4 (Automated Purge):** Expired metadata must be deleted automatically after 90 days (configurable via `NEWS_RETENTION_DAYS`).
 
-### 11.2 Semantic Deduplication Engine
-- **Vector Embeddings Generation**: Convert incoming article text into 3072-dimensional vector representations using configurable embedding models (e.g., local/remote open-source embedding models or the OpenAI `text-embedding-3-large` model).
-- **Global Deduplication Check**: Query the database to compare incoming news against all global entries stored within a configurable TTL window (typically 1 to 2 months).
-- **50% Difference Principle Execution**:
-  - If similarity is $< 0.88$, mark as a **New Event** and store in the database.
-  - If similarity is $\ge 0.88$, compare the commentary/analysis depth:
-    - If unique commentary is $> 50\%$ of the total text length, publish it as an **Analysis Article** linked to the parent event.
-    - If unique commentary is $\le 50\%$, **discard the duplicate incoming item** entirely to keep the database and feeds clean.
-- **TTL Expiration**: Automatically delete entries once they reach their configured TTL (1 to 2 months).
+### 11.2 Processing Pipeline (n8n & MiniMax M3)
+* **FR-2.1 (Language Detection):** Detect the original language of incoming articles.
+* **FR-2.2 (Translation Matrix):** Generate and store titles and summaries in three parallel fields: `Original`, `English`, and `Chinese`.
+* **FR-2.3 (De-duplication Engine):**
+  * **Level 1 (Exact Match):** Compare URLs, Canonical URLs, and exact title hashes.
+  * **Level 2 (Semantic Match):** Utilize `pgvector` for cosine similarity comparison on titles and summaries (threshold range: 0.88–0.92). Vector embeddings must be generated using a **free local HuggingFace embedding container** (e.g., running `all-MiniLM-L6-v2`) hosted on the self-hosted Ubuntu Server, avoiding external API costs. Group similar items under a single `duplicate_group` reference.
+* **FR-2.4 (LLM Enrichment):** Use MiniMax M3 (via an Anthropic-compatible API wrapper) to generate:
+  * Chinese and English summaries (max 150 words).
+  * Country tags (e.g., `USA`, `Canada`, `Japan`, `Global`).
+  * Topic tags (e.g., `Work Visa`, `PR`, `Citizenship`, `Golden Visa`).
+  * Target audience tags (e.g., `Students`, `Skilled Workers`, `Investors`, `Retirees`).
+  * Importance, Chinese Relevance, Video, and Evergreen scores (integers from 0 to 100).
+  * Recommended YouTube video titles (Chinese) and thumbnail prompt suggestions.
+  * AI analysis paragraph describing the impact on the target Chinese demographic.
 
-### 11.3 Classification & Tagging System
-- **Automated Tagging**: Apply zero-shot LLM classification to assign:
-  - **Jurisdiction Tags**: Multi-select matching the 22+ jurisdictions.
-  - **Feature Tags**: `Raising a Family`, `Education`, `Retirement`, `Vacation`, `Culture Inclusion`, `Corporate Sponsorship`.
-- **Admin Verification Queue**: Route borderline classifications (classifier confidence score $< 0.85$) to an internal admin queue for manual approval.
+### 11.3 Backend API (FastAPI)
+* **FR-3.1 (REST API Endpoints):**
+  * `GET /api/news`: List processed news items, supporting pagination, sorting (by published date, video score, relevance score), and text search.
+  * `GET /api/news/{id}`: Retrieve detailed metadata for a single story.
+  * `GET /api/filters`: Return active country, topic, and audience tags.
+  * `GET /api/candidates`: Retrieve all starred video candidates.
+  * `POST /api/candidates/{id}/star`: Add an item to the candidate pool.
+  * `DELETE /api/candidates/{id}/unstar`: Remove an item from the candidate pool.
+  * `PATCH /api/candidates/{id}/notes`: Update custom annotations/notes on a candidate.
+* **FR-3.2 (Authentication):** Simple token-based or basic authorization to secure access to the dashboard APIs, since it is a single-user system.
 
-### 11.4 User Preference & Account Management
-- **User Tiers**:
-  1. **Unregistered User**: No sign-up required. Can only view the global dashboard feed (no jurisdiction or category filters allowed) containing the 10 latest articles.
-  2. **Basic Registered User (Free)**: Authenticates via email/password. Can configure destination jurisdictions and feature tags, and opt-in to receive automated daily or weekly email digests matching their preferences.
-  3. **Premium Registered User (Paid)**: Authenticates via email/password. Receives all Basic features, plus the ability to configure custom keyword notifications delivered via instant email alerts.
-- **Preferences Settings**: Dashboard settings panel to toggle selections from the 22+ target jurisdictions and 6 feature tags (applicable only to Basic and Premium accounts).
-
-### 11.5 Delivery & Notification Service
-- **Personalized Feed Generation**: Dynamically construct the dashboard feed based on preferences, limiting the returned array to a maximum of 10 items.
-- **Diversity Algorithm**: In any generated feed or push newsletter, **no single jurisdiction may have more than 2 items** in the final 10-item list, ensuring content diversity. *(Note: If a user selects a narrow preference profile, e.g. 1-4 countries, the max-2-per-jurisdiction constraint will naturally restrict the feed to fewer than 10 total items. This is an expected constraint interaction, prioritizing diversity over feed filling).*
-- **Email Digest Broker**: Cron-triggered service compiling the top 10 personalized, diversity-filtered news items into daily or weekly emails for Basic and Premium users.
-- **Premium Keyword Alerts Broker**: Scan incoming non-duplicate articles for Premium users' keywords. Dispatch real-time email alerts immediately upon matching.
+### 11.4 Frontend Dashboard (Next.js)
+* **FR-4.1 (Responsive Grid Layout):** A responsive page showcasing story cards. Each card displays the primary country, title (Chinese), video score badge, Chinese relevance badge, source name, and published date.
+* **FR-4.2 (Quick Filters Sidebar/Header):** Interactive side filters allowing instant filtering by country, topic, and target audience.
+* **FR-4.3 (Detail Drawer):** Slide-out drawer on card-click displaying:
+  * Titles (Original, English, Chinese)
+  * Summaries (Original, English, Chinese)
+  * AI Analysis (Impact on Chinese migrants)
+  * Multi-dimensional score bars
+  * Suggested titles list
+  * Link to the original source article
+  * Section to read/write custom editor notes (saved to database).
+* **FR-4.4 (Candidates Tab):** A dedicated board listing starred items sorted by `video_score` (descending), featuring edit fields for titles and production outline notes.
 
 ---
 
 ## 12. Non-functional Requirements
 
-### 12.1 Performance & Latency
-- **Deduplication Latency**: The ingestion-to-publish processing pipeline (scraping, embedding, similarity verification, tagging) must complete in $\le 60$ seconds per article.
-- **Page Load Time**: The dashboard web UI must load and render in under 1.5 seconds on mobile 4G networks.
-- **Query Latency**: Search and dashboard retrieval operations must execute in $\le 200$ milliseconds.
-
-### 12.2 Scalability
-- **Concurrently Active Users**: Support up to 100,000 daily active users (DAUs) without degradation.
-- **Vector Storage**: Scalable to index up to 500,000 historical article vectors.
-
-### 12.3 Reliability & Monitoring
-- **Availability**: Maintain $99.9\%$ service uptime for the web dashboard and notification broker.
-- **Scraper Health**: Implement automated Slack/email alerts if any scraper fails to retrieve updates for two consecutive runs (8 hours).
-
-### 12.4 Security & Privacy
-- **Compliance**: Adhere to GDPR and CCPA standards (encryption of user credentials and phone numbers, data deletion requests, cookie consent).
-- **Network Security**: Enforce HTTPS for all web traffic and secure authentication protocols for API routes.
-
-### 12.5 Usability
-- **Design System**: A bright, vivid, and attractive light-mode theme using high-contrast typography (Inter/Outfit fonts) for legibility.
-- **Responsive Adaptability**: Adaptive layout transitions matching viewport breakpoints for mobile (under 768px) and desktop (over 1200px).
+* **Performance:** Dashboard client-side filtering response must render under 200ms. Detail drawer transition must run smoothly under 100ms.
+* **Scalability:** The database must comfortably handle up to 50,000 metadata records (average volume over 90 days) without query degradation.
+* **Cost Efficiency:** Maintain low operating costs by using MiniMax M3. Target API expenditure under $10 per month.
+* **Hosting Security:** Next.js frontend hosted on Cloudflare Pages. Communication back to self-hosted Ubuntu backend is routed exclusively through a Cloudflare Tunnel, eliminating exposed ports.
+* **Availability:** Background workflows must run reliably, utilizing automated retries for LLM API and network flakiness.
 
 ---
 
-## 13. Business Rules
-- **Rule 1**: Any feed or newsletter delivered to a user must be restricted to a maximum of 10 news items.
-- **Rule 2**: No article summary may be displayed without a validated, active HTTP link to the original official source document.
-- **Rule 3**: Global Deduplication: If an incoming article is identified as a duplicate of an existing article within the database TTL window (1-2 months), it must be discarded immediately.
-- **Rule 4**: Diversity Rule: A single jurisdiction may contribute at most 2 items to any 10-item feed or newsletter list.
-- **Rule 5**: Account Levels and Access:
-  - Unregistered: View global feed (unfilterable) on web only.
-  - Basic (Free): View filtered feed, subscribe to daily/weekly email digests.
-  - Premium (Paid): View filtered feed, subscribe to digests, and receive real-time email keyword alerts.
+## 13. Business & Processing Rules
+
+* **Chinese Relevance Threshold:** News items with a `chinese_relevance_score` lower than 60 are automatically hidden from the main dashboard feed unless the user explicitly checks the "Show Low Relevance" toggle.
+* **Top Recommendation Criteria:** A story card is flagged as "High Recommendation" if its `video_score` is >= 70 and `chinese_relevance_score` is >= 70.
+* **De-duplication Scope:** De-duplication must check articles within a rolling 7-day window. Items outside this window are considered distinct news cycles.
+* **Data Retention Policy:** The PostgreSQL db runs an automated daily cron job to delete records where `published_at` is older than `NEWS_RETENTION_DAYS` (default: 90).
 
 ---
 
 ## 14. Assumptions
-- Government portals and legal news sites will remain publicly accessible, supported by custom scraper logic, polite crawling patterns, or API access.
-- Configured embedding APIs and service providers maintain high availability.
-- Users have access to modern web browsers supporting CSS Grid/Flexbox and standard JavaScript.
+
+* **Feed Content Sufficiency:** The raw titles and descriptions provided in RSS feeds are sufficiently detailed for MiniMax M3 to perform precise language translation and metadata extraction.
+* **MiniMax API Availability:** MiniMax M3 API will maintain an uptime of >99% and process inputs with latency under 5 seconds per request.
+* **Ubuntu Server Stability:** The self-hosted server has a stable internet connection and sufficient resources (min 4GB RAM, 2 CPU cores) to host Docker Compose services.
 
 ---
 
 ## 15. Constraints
-- **Resource Constraints**: Deduplication and LLM processing must run within a budget.
-- **Data Constraints**: The app does not store or process visa application documentation or user passport details.
-- **Architecture Constraints**: Use PostgreSQL as the primary database, running in Docker Compose with other backend services. Frontend is hosted on Cloudflare (with Cloudflare Tunnel).
+
+* **Platform Stack:** Deployment is limited to self-hosted n8n, PostgreSQL, FastAPI (Python), Next.js, and Cloudflare Tunnel.
+* **Python Constraints:** Python services must be managed and executed using `uv` (`uv run <command>`).
+* **Storage Constraints:** Metadata only. Absolutely no storage of original web bodies, HTML markups, page scripts, or media assets (images/videos).
+* **Methodology:** All backend changes and FastAPI integrations must be developed following Test-Driven Development (TDD) principles.
 
 ---
 
 ## 16. Dependencies
-- **Embedding and Classification API**: OpenAI API (for 3072-dimension document embeddings and zero-shot classification) or configurable local/remote open-source alternatives.
-- **PostgreSQL Database**: Running inside Docker Compose.
-- **Cloudflare & Cloudflare Tunnel**: For secure and cost-effective frontend hosting and routing.
-- **Email Service Gateway**: SMTP or transactional email API (e.g., SendGrid, Mailgun) for dispatching digests and keyword alerts.
+
+* **Docker & Docker Compose:** Installed on the Ubuntu Server to manage n8n, FastAPI, PostgreSQL, and `cloudflared`.
+* **MiniMax Developer Account:** Active API key loaded into the environment variables.
+* **Cloudflare Account:** Active domain name configured for Pages and Cloudflare Tunnels.
 
 ---
 
-## 17. Risks
-- **Scraper Fragility**: Changes in target site HTML structures can break ingestion pipelines.
-  - *Mitigation*: Daily automated tests running against scraper endpoints and immediate developer fallback notifications.
-- **Misclassification**: Filtering out a critical policy update due to high semantic similarity to an unrelated event.
-  - *Mitigation*: Fallback matching checks against specific key variables (dates, scores) and manual verification for high-impact draw scores.
+## 17. Risks and Mitigations
+
+| Risk | Impact | Mitigation Strategy |
+| :--- | :--- | :--- |
+| **MiniMax API Outages** | Medium | n8n workflows will place failed executions in a queue and attempt retries. A local mock mode will be available in FastAPI for local testing. |
+| **De-duplication Over-grouping** | High | Calibrate the `pgvector` threshold. Require that grouped articles must match on both `country_tags` and `topic_tags` to prevent conflating unrelated news from different regions. |
+| **Tunnel Disconnections** | Medium | Configure Docker container auto-restart policy for `cloudflared` to automatically re-establish connection after network drops. |
+| **Google Alerts Rate Limits** | Low | Stagger RSS scraping intervals (e.g., every 4 hours) instead of hourly to minimize risk of IP blocks or rate limit limits. |
 
 ---
 
 ## 18. Acceptance Criteria
-- **AC-01**: Ingesting a duplicate article within the 1-2 month TTL window results in the duplicate item being discarded.
-- **AC-02**: Ingesting an official draw score update followed by a law firm analysis containing $>50\%$ new commentary results in two separate database items.
-- **AC-03**: A Basic or Premium user changing preferences immediately updates their personal feed, while an Unregistered user has no filter options and sees the global feed.
-- **AC-04**: Any feed or digest generated has a maximum of 10 items, and no single jurisdiction has more than 2 items in that list.
-- **AC-05**: If an ingested news item matches a Premium user's custom keyword, an email alert is sent to them immediately.
+
+* **Automation Verification:** A new RSS item published online is successfully fetched, processed (translated, de-duplicated, and graded), and populated into the PostgreSQL DB within 4 hours.
+* **De-duplication Check:** Syndicated news articles (identical content on different domains) are grouped under one story card with multiple source links.
+* **Dashboard Filtering:** Toggling countries (e.g., `Japan`) instantly changes the visible cards grid.
+* **Drawer Interaction:** Clicking any card opens the slide-out detail pane containing all fields (original, English, Chinese) and the LLM analysis without reloading the list.
+* **Candidate Starring:** Starring a card successfully relocates/shows it on the Saved Candidates page and permits editing custom notes.
 
 ---
 
 ## 19. Success Metrics
-- **Feed CTR to Original Sources**: The ratio of users clicking the official source links (verifying our transparency metric).
-- **Deduplication Rate**: Percentage of scraped duplicate feed items successfully discarded (target $>60\%$).
-- **Alert Latency**: Average time between official policy publication and email alert dispatch (target $\le 30$ minutes).
+
+* **Curation Time:** The daily morning editorial workflow takes less than 10 minutes to locate stories and structure the weekly video theme.
+* **De-duplication Rate:** At least 90% of duplicate articles are correctly filtered and grouped.
+* **Pipeline Output:** Sustains a healthy pool of at least 3 high-quality, high-scored video candidate stories by Thursday of every week.
+* **Curation Overhead:** Manual collection overhead is reduced by at least 80%.
 
 ---
 
 ## 20. Scope
-- Fully automated ingestion pipelines for 22+ jurisdictions (US, CA, UK, AU, NZ, SG, DE, ES, IE, JP, KR, MY, TH, PH, MX, AE, TR, Pacific/Caribbean Islands, HK, MO, TW, BR).
-- Configurable global semantic deduplication with 1-2 month TTL (duplicate discarding) and strict publication date timestamping.
-- Web interface with a bright, vivid, and attractive light-mode design, hosted on Cloudflare (with Cloudflare Tunnel).
-- Backend microservices running in Docker Compose with PostgreSQL.
-- Three user access levels: Unregistered, Basic (Free with daily/weekly email digests), and Premium (Paid with digests and real-time email keyword alerts).
-- Diversity enforcement algorithm (max 2 items per jurisdiction per feed).
-- Admin dashboard for scraping health monitoring.
+
+### Phase 1: Core Automation (MVP)
+* Docker Compose setup (n8n, PostgreSQL, FastAPI, Cloudflare Tunnel).
+* RSS parser workflow in n8n (Google Alerts + public agency feeds).
+* MiniMax M3 translation, summarization, and grading engine integration.
+* FastAPI backend exposing news query, search, and detail APIs.
+* Basic Next.js feed viewer dashboard with country and topic filters.
+
+### Phase 2: Refined Curation & Editing
+* `pgvector` semantic de-duplication implementation.
+* Starred Candidates management system (Saved page, personal annotations, editing).
+* Advanced filters (Audience type, combined score threshold adjustments).
 
 ---
 
 ## 21. Future Scope
-- Automated translation engines for non-English source gazettes (e.g., German, Spanish, Japanese, Korean) into English.
-- Integrated AI assistant for answering specific user profile queries based on the accumulated policy database.
-- B2B API access for relocation agency portals.
+
+* **Automatic Script Outlines:** Auto-generating a structured video script layout (3-hook format) based on the AI analysis.
+* **Dynamic News Digests:** Automated daily/weekly summary emails, WeChat notifications, or Telegram messages containing top-ranked topics.
+* **Interactive Chat / RAG:** Adding a chat interface inside the dashboard allowing the creator to query the 90-day news database using natural language (e.g., *"What changed about Japan's skilled visa last month?"*).
 
 ---
 
-## 22. Open Questions
-- How can we design our custom scraper architecture to ensure maximum resilience against target website changes and layout modifications?
+## 22. Decisions & Resolved Questions
+
+1. **MiniMax M3 Latency & Timeout Mitigation:** n8n workflows will utilize an asynchronous webhook pattern to handle batch parallel requests to the MiniMax M3 API, preventing execution timeouts.
+2. **Feed Sufficiency & Google Alerts:** At this stage (Phase 1), RSS feeds (Google Alerts RSS and direct government feeds) are sufficient. Other data sources (such as custom Puppeteer scrapers) can be added modularly in future iterations. Feed checks will be scheduled every 3-4 hours to prevent rate limits.
+3. **Local Embedding Service:** We will run a local, free HuggingFace embedding container (hosting `all-MiniLM-L6-v2`) on the Ubuntu server for de-duplication, avoiding API-based embedding costs.
 
 ---
 
@@ -243,7 +267,5 @@ The GA release of ImmiPulse delivers on the three core product vision principles
 
 | Timestamp | Type | Summary | Sections |
 | :--- | :--- | :--- | :--- |
-| 2026-06-25T19:50:00Z | Add | Initial creation of the Product Requirements Document (PRD) for ImmiPulse GA release. | All |
-| 2026-06-26T05:15:00Z | Replace | Updated country lists, user tiers, global deduplication rules, timestamps, diversity constraints, and tech stack based on updated product directions. | 1, 5, 9, 10, 11.1, 11.2, 11.4, 11.5, 13, 15, 16, 18, 19, 20 |
-| 2026-06-26T06:00:00Z | Replace | Revised PRD based on user feedback: updated country to jurisdiction terminology, removed Language feature tag, changed theme to bright light-mode, removed proxy dependencies (self-built scrapers), set ingestion daily by default (configurable), and made embedding models configurable. | All |
-| 2026-06-26T06:20:00Z | Replace | Implemented QA issue resolutions: added scheduler support down to 4-hour windows and specified UTF-8 / UTC normalizer support for non-English jurisdictions. | 11.1 |
+| 2026-07-09T06:30:00Z | Add | Created initial Product Requirements Document (PRD) from Vision, Constraints, Research Report, and Idea. | All |
+| 2026-07-09T06:46:00Z | Replace | Resolved open questions regarding MiniMax latency, feed sufficiency, and local embedding container choice. | Functional Requirements, Decisions, Constraints |

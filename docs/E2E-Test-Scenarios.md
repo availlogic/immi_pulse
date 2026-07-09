@@ -1,57 +1,150 @@
-# ImmiPulse - End-to-End (E2E) Test Scenarios
+# E2E Test Scenarios: Yutian Immigration AI Newsroom (ImmiPulse)
 
-## E2E-01: Anonymous Guest Browse Journey
-- **Description**: Verifies that unregistered visitors can view the global feed and read summaries without account blocks, but are restricted from custom preferences or alerts.
-- **Scenario Steps**:
-  1. Open the application landing page (`/`).
-  2. Verify the page displays a header with "Login" and "Sign Up" links.
-  3. Verify the main section displays a list of article cards (exactly 10 items).
-  4. Verify the active filter badge section is empty.
-  5. Scroll to the preferences sidebar. Verify all filters (checkboxes) are disabled and a blur overlay is present with the text "Register to customize your feed".
-  6. Click on the first article card.
-  7. Verify the **Article Modal** opens displaying: Title, Summary, Jurisdiction, Tags, and a button labeled "Open Verified Source".
-  8. Click the "Open Verified Source" button. Verify it opens the correct government portal URL in a new tab.
-  9. Close the modal by clicking the backdrop.
-- **Traceability**: Derived from [User-Flows.md](file:///Users/victorxu/projects/immi_pulse/docs/User-Flows.md) Section 3.1.
-- **Priority**: High
+This document specifies the end-to-end (E2E) testing scenarios for **ImmiPulse**, simulating real user behaviors across screen transitions, API requests, database mutations, and external actions.
 
 ---
 
-## E2E-02: New User Registration & Feed Personalization Journey
-- **Description**: Verifies that a visitor can sign up, select preferred jurisdictions/tags, opt-in to digests, and immediately see their feed update to reflect those choices.
-- **Scenario Steps**:
-  1. Open the landing page (`/`). Click the "Sign Up" button in the header.
-  2. Fill in the email input with a unique generated address (`e2e_user@example.com`) and password (`Pass1234!`). Click "Register".
-  3. Verify the browser redirects to the **User Settings Screen** (`/settings`).
-  4. Verify a welcome message is displayed.
-  5. Check target jurisdictions: `Canada` and `Singapore`.
-  6. Check feature tags: `Education` and `Vacation` (verify `Language` is not present in the options).
-  7. Select digest frequency: `Daily`.
-  8. Click "Save Preferences".
-  9. Verify the page displays a success banner and redirects back to the **Dashboard Feed** (`/dashboard`).
-  10. Verify the dashboard displays the filter badges: `Canada`, `Singapore`, `Education`, `Vacation`.
-  11. Verify the feed displays only articles tagged with `CA` or `SG` containing at least one of the selected feature tags.
-  12. Verify the feed contains a maximum of 10 articles, and no more than 2 articles from Canada are listed (enforcing the diversity limit).
-- **Traceability**: Derived from [User-Flows.md](file:///Users/victorxu/projects/immi_pulse/docs/User-Flows.md) Section 3.2.
-- **Priority**: Critical
+## E2E-001: Daily News Review Journey
+
+### Objectives
+Verify that the creator can review daily ingested news, apply filters, examine specific policy updates in the detail drawer, click to verify official sources, star the story as a candidate, and write initial notes.
+
+### Prerequisites
+- FastAPI backend, PostgreSQL, local TEI container, and Next.js frontend are running.
+- Ingestion pipeline has recently loaded 10 new articles into the database:
+  - 2 articles on Canada (one with relevance 85, one with relevance 45).
+  - 1 article on Japan (relevance 80).
+  - 7 other global articles.
+
+### Test Steps & Assertions
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Creator as Yutian (User)
+    participant UI as Next.js Dashboard
+    participant API as FastAPI Backend
+    participant DB as PostgreSQL DB
+    
+    Creator->>UI: Open Dashboard (/)
+    UI->>API: GET /api/news?show_low_relevance=false
+    API->>DB: Query primary news items (Relevance >= 60)
+    DB-->>API: Return 9 news items
+    API-->>UI: Return 9 news items
+    UI-->>Creator: Render news grid (Canada relevance 45 is hidden)
+    
+    Creator->>UI: Select "Canada" in Country Filters
+    UI->>API: GET /api/news?countries=Canada&show_low_relevance=false
+    API-->>UI: Return 1 news item (Canada relevance 85)
+    UI-->>Creator: Render grid containing only Canada Card
+    
+    Creator->>UI: Click Card (Canada Express Entry)
+    UI->>API: GET /api/news/{id}
+    API-->>UI: Return full translations, AI Analysis & source list
+    UI-->>Creator: Drawer slides open from right (renders details)
+    
+    Creator->>UI: Click "Original" translation tab
+    UI-->>Creator: Renders summary in original language (English)
+    
+    Creator->>UI: Click Star Candidate (⭐) Button
+    UI->>API: POST /api/candidates/{id}/star
+    API->>DB: INSERT INTO candidates (news_item_id)
+    DB-->>API: Row inserted successfully
+    API-->>UI: Return 201 Created (candidate_id)
+    UI-->>Creator: Star button transitions to gold fill (starred state)
+    
+    Creator->>UI: Write notes in text box ("Verify draw stats tomorrow")
+    Creator->>UI: Blur focus out of text box
+    UI->>API: PATCH /api/candidates/{id}/notes {"notes": "Verify..."}
+    API->>DB: UPDATE candidates SET notes = "Verify..."
+    DB-->>API: Notes updated
+    API-->>UI: Return 200 OK
+    UI-->>Creator: Displays "Saved to desk" check pill
+```
+
+### Validation & Verification
+1. **Traceability check**:
+   - Verify that `is_starred` matches true in database.
+   - Verify that the card grid scroll position was preserved throughout transitions.
+   - Verify clicking the original link opened a new browser tab without losing state.
+2. **Error Recovery Branch**:
+   - If the note PATCH fails (e.g. timeout), verify a warning toast shows: "Sync Failed. Retrying...". Clicking retry successfully repeats the step.
+
+- **Traceability**: [User-Flows: Section 2.1](file:///Users/victorxu/projects/immi_pulse/docs/User-Flows.md#L26), [PRD: US-5, US-7, US-8](file:///Users/victorxu/projects/immi_pulse/docs/PRD.md#L103)
 
 ---
 
-## E2E-03: Premium Upgrade and Keyword Alert Lifecycle
-- **Description**: Verifies that a premium subscriber can configure keyword rules, receives real-time notifications on match, and can delete the rules.
-- **Scenario Steps**:
-  1. Log in with user credentials of a Premium subscriber (`premium@example.com`).
-  2. Verify the header displays an "Alerts" navigation link. Click "Alerts".
-  3. Verify the page renders the **Alarms Screen** (`/alerts`).
-  4. Select `United Kingdom` from the Jurisdiction list.
-  5. Type `salary threshold` in the Keyword field.
-  6. Click "Create Alarm".
-  7. Verify the new alert "United Kingdom: salary threshold" is added to the active alarms list.
-  8. Simulate ingestion of an article: `Origin Jurisdiction = UK`, `Title = UK increases salary threshold for sponsor visa`, containing `salary threshold` in the body.
-  9. Access the user's mock email client; verify an email is received immediately containing the article title, summary, and direct link.
-  10. Return to the `/alerts` screen in the browser.
-  11. Click the "Delete" trash can icon next to the "United Kingdom: salary threshold" alert.
-  12. Verify the alert card disappears from the active list.
-  13. Simulate ingestion of another matching article; verify no email is sent to the user this time.
-- **Traceability**: Derived from [User-Flows.md](file:///Users/victorxu/projects/immi_pulse/docs/User-Flows.md) Section 3.3.
-- **Priority**: High
+## E2E-002: Weekly Planning & Script Drafting Journey
+
+### Objectives
+Verify that the creator can review the accumulated starred pool, select the optimal topic, draft and flesh out the script outline in the double-pane workspace, export the content to the clipboard, and clean up unstarred candidates.
+
+### Prerequisites
+- Candidates table contains 4 starred items:
+  - Canada Express Entry Draw (Video Score: 82)
+  - Japan highly skilled visas (Video Score: 75)
+  - UK student visa updates (Video Score: 60)
+  - Spain Nomad updates (Video Score: 55)
+
+### Test Steps & Assertions
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Creator as Yutian (User)
+    participant UI as Next.js Dashboard
+    participant API as FastAPI Backend
+    participant DB as PostgreSQL DB
+    
+    Creator->>UI: Click "Candidates" in Navigation Sidebar
+    UI->>API: GET /api/candidates
+    API->>DB: Query candidates table JOIN news_items
+    DB-->>API: Return 4 candidates
+    API-->>UI: Return 4 candidates sorted by video_score desc
+    UI-->>Creator: Renders Candidates split double-pane layout
+    
+    Creator->>UI: Select first item (Canada Draw) in left list
+    UI-->>Creator: Populates right pane with Outline Editor
+    
+    Creator->>UI: Type script hooks in custom outline block
+    Creator->>UI: Focus out of custom outline block
+    UI->>API: PATCH /api/candidates/{id}/notes
+    API->>DB: UPDATE candidates SET custom_outline = "..."
+    API-->>UI: Return 200 OK
+    UI-->>Creator: Displays "Saved to desk" feedback indicator
+    
+    Creator->>UI: Click "Copy Outline to Clipboard" button
+    UI-->>Creator: Shows toast "Outline Copied!" & copies markdown text
+    
+    Creator->>UI: Click Star icon (⭐) on Japan candidate card in list
+    UI->>API: DELETE /api/candidates/{id}/unstar
+    API->>DB: DELETE FROM candidates WHERE news_item_id = id
+    DB-->>API: Row deleted
+    API-->>UI: Return 200 OK
+    UI-->>Creator: Card disappears from list, shows Undo banner toast
+    
+    Creator->>UI: Click "Undo" in the bottom banner
+    UI->>API: POST /api/candidates/{id}/star
+    API-->>UI: Return 201 Created
+    UI-->>Creator: Card is restored to candidates list
+```
+
+### Validation & Verification
+1. **Clipboard content formatting**:
+   - Read clipboard buffer and assert contents match the standard format:
+     ```markdown
+     # Video Topic: [Selected Custom Title]
+     
+     ## AI Demographic Impact Analysis
+     [AI Analysis Text]
+     
+     ## Creator Script Outline
+     [Custom Creator Outline Text]
+     
+     ## Reference Sources
+     - Source 1: [URL]
+     ```
+2. **Transition/Collapse check**:
+   - Resize viewport to mobile (<768px). Assert layout changes from split double-pane to single vertical card stack, and clicking a card slides the outline editor up as a bottom sheet.
+
+- **Traceability**: [User-Flows: Section 2.2](file:///Users/victorxu/projects/immi_pulse/docs/User-Flows.md#L76), [PRD: US-8](file:///Users/victorxu/projects/immi_pulse/docs/PRD.md#L107), [UI-Layouts: Section 4](file:///Users/victorxu/projects/immi_pulse/docs/UI-Layouts.md#L103)

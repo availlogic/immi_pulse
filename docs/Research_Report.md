@@ -1,206 +1,205 @@
-# ImmiPulse - General Availability (GA) Research Report
+# Research Report: Yutian Immigration AI Newsroom
 
 ## Executive Summary
-This report presents comprehensive market, competitive, technical, and regulatory research for the General Availability (GA) launch of **ImmiPulse**—a vertical, highly timely global immigration news and policy aggregator. The core GA objective is to establish a production-grade, highly automated ingestion and semantic deduplication pipeline covering all mainstream immigration destination countries. 
 
-Rather than relying purely on simple RSS feeds, the GA system integrates official gazettes, APIs, web-scraped government portals, court precedents, and professional legal networks. The proprietary **50% Difference Principle** is implemented at scale using a hybrid pipeline (vector similarity combined with LLM-based entity and novelty analysis) to filter out redundant reports while retaining high-value professional commentary. This research validates that delivering an ad-free, curated, and transparent global policy database with a hard cap of 10 daily high-impact stories represents a major market opportunity.
+The **Yutian Immigration AI Newsroom** is an AI-powered personal editorial desk designed to optimize the daily curation workflow for the YouTube channel *"雨田在海外"* (focusing on global immigration and overseas life for Chinese audiences). Instead of spending 1–2 hours daily manually scouting multiple portals, the system automates content discovery, translation, de-duplication, and grading.
+
+This Research Report compiles market dynamics, customer insights, technical feasibility, and strategic risks to validate the product's direction.
+
+### Key Research Findings
+1. **Strategic Shift in Immigration:** Traditional Western paths (US, Canada, UK, Australia) are tightening their policies in 2025–2026. Mainland Chinese interest is shifting toward Asian destinations (Japan, Malaysia MM2H, Singapore, Thailand) and selective European residency (Greece, Hungary).
+2. **Technical Feasibility of MiniMax M3:** MiniMax M3 offers an Anthropic-compatible API. Testing shows it natively supports system prompts, reasoning blocks, and high-quality Chinese/English translation, making it highly suitable as the core cognitive engine for scoring and summarizing news.
+3. **De-duplication Architecture:** Simple URL and title comparisons fail for syndicated press releases (AP/Reuters). A hybrid approach combining metadata hashing (Level 1) with semantic cosine similarity using database-level vector indexing (Level 2, e.g., PostgreSQL `pgvector`) is necessary to meet the 90%+ de-duplication target.
+4. **Data Retention & Fair Use Compliance:** Since the platform stores only metadata (titles, summaries, tags, and scores) and purges records after 90 days, it is highly compliant with copyright laws and operates on a lightweight storage footprint.
 
 ---
 
 ## Research Objectives
-- Map and analyze data ingestion sources across all mainstream global immigration destinations.
-- Define a production architecture for non-RSS data harvesting, including APIs, gazettes, and web scrapers.
-- Establish the technical blueprint for the semantic deduplication engine and the "50% Difference Principle" at GA scale.
-- Identify the target customer segments, user pain points, and competitor landscape.
-- Assess regulatory compliance, business risks, and technical challenges for a global GA launch.
+
+The objectives of this research are:
+1. **Validate Concept:** Confirm if an automated desk can successfully highlight stories relevant specifically to Chinese audiences.
+2. **Evaluate Technologies:** Assess the suitability of n8n, MiniMax M3, FastAPI, PostgreSQL (pgvector), and Cloudflare Tunnel for a hybrid self-hosted stack.
+3. **Analyze Market Trends:** Identify target audience interests to refine country and topic tag structures.
+4. **Identify Risks:** Highlight technical, regulatory, and business risks and propose mitigation strategies before development begins.
 
 ---
 
 ## Key Assumptions
-1. **Scrapability of Sources**: Government immigration websites and official gazettes are programmatically accessible, and anti-scraping defenses (e.g., Cloudflare) can be bypassed legally via proxy networks or official APIs.
-2. **Value of Noise Elimination**: High-value users (immigrants, relocation managers, HR professionals) are willing to pay for a unified, noise-free, and deduplicated news stream to avoid missing critical policy deadlines.
-3. **Feasibility of Automated Curation**: A combination of vector embeddings and LLM analysis can consistently classify and tag unstructured policy changes without requiring heavy manual editorial overhead.
+
+The following assumptions underly the project's design:
+* **LLM Translation Quality:** MiniMax M3 can translate original articles (often in English, Spanish, Portuguese, or Japanese) to Chinese with enough precision to retain critical policy terms.
+* **Scoring Alignment:** The LLM can accurately distinguish between global importance and relevance to the Chinese diaspora (e.g., a small change in the Hong Kong Top Talent scheme is of low global importance but of extremely high Chinese relevance).
+* **Metadata Sufficiency:** A video creator does not need a full-text database; article summaries, source URLs, and key takeaways are sufficient to decide whether to research a topic deeper.
+* **Google Alerts RSS Reliability:** Google Alerts RSS serves as a robust base aggregator, which can be supplemented by direct feeds from government portals.
 
 ---
 
-## Market Analysis & Destination Coverage
-The GA release target focuses on all mainstream global migration and mobility destination countries, classified into regional hubs:
+## Market Analysis
 
-### 1. North America
-- **United States**: Focuses on H-1B caps, employment-based visa backlogs (EB-1/2/3), DOS Visa Bulletin releases, and USCIS filing fee adjustments.
-- **Canada**: Focuses on Express Entry draws (general and category-based), Provincial Nominee Programs (PNPs), study permit caps, and temporary resident volume controls.
+### Content Creator Curation Workflow
+YouTube creators in the immigration niche typically spend up to 15 hours a week collecting information. They check:
+* Official immigration portals (USCIS, IRCC, UK Home Office).
+* Foreign policy newsletters and mainstream media.
+* Social media platforms (Xiaohongshu, WeChat channels) to observe user anxiety and questions.
 
-### 2. Europe & United Kingdom
-- **United Kingdom**: Focuses on Skilled Worker visa salary thresholds, Sponsor License compliance, and shortage occupation adjustments.
-- **Ireland**: Focuses on Critical Skills Employment Permits, Stamp 4 updates, and investor visa adjustments.
-- **European Schengen Area (Germany, France, Spain, Portugal, Italy)**: Focuses on the EU Pact on Migration and Asylum, Germany's Opportunity Card (Chancenkarte), France's talent visas, Spain's Digital Nomad updates, and Portugal's transition from SEF to AIMA.
-
-### 3. Oceania
-- **Australia**: Focuses on Skilled Independent (subclass 189/190) visa invitation rounds, state nomination requirements, and Employer Sponsored visa pathways.
-- **New Zealand**: Focuses on Accredited Employer Work Visas (AEWV), Green List additions, and Skilled Migrant Category point thresholds.
-
-### 4. Asia
-- **Singapore**: Focuses on the COMPASS points system for Employment Passes, S Pass criteria, and high-net-worth residency programs (GIP).
-- **Japan & South Korea**: Focuses on Japan's Specified Skilled Worker (SSW) expansions, J-Find/J-Skip talent visas, and South Korea's digital nomad and high-tech visa updates.
+Existing general feed readers (Feedly, Inoreader) only group feeds chronologically and lack semantic understanding of policy impact. There is a market gap for an **Editorial Command Center** that aggregates, filters, and prioritizes news based on creator-defined scoring formulas.
 
 ---
 
 ## Customer Segments
 
-| Segment | Profile | Core Information Needs | Willingness to Pay |
-| :--- | :--- | :--- | :--- |
-| **High-Net-Worth & Skilled Expats** | Software engineers, physicians, entrepreneurs, digital nomads. | Immediate notification of visa category changes, draw score drops, processing times, and path-to-citizenship rules. | High (for premium alerts, SMS notifications, and ad-free experience). |
-| **Corporate HR & Mobility Teams** | Internal talent acquisition and compliance officers at multinational corporations. | Changes to employer sponsorship regulations, salary thresholds, filing fees, and local labor market tests. | Very High (requires B2B team licensing and custom compliance dashboards). |
-| **Relocation & Legal Agencies** | Small-to-medium immigration agencies and relocation consultancies. | Comparative data on global visa programs to advise clients. | High (requires API access or white-label integration). |
+The primary consumer of the content generated is the Chinese-speaking audience interested in global immigration. We segment this audience as follows:
+
+| Segment | Primary Interest | Key Destinations |
+| :--- | :--- | :--- |
+| **Middle-Class Families** | High-quality education, healthcare, clean environment | Japan, Canada, Greece, Malaysia |
+| **Skilled Professionals** | Career opportunities, permanent residency (PR) | US, Canada, Australia, Singapore, Hong Kong |
+| **Chinese Students** | Post-study work visas, path to PR | US, UK, Canada, Australia |
+| **High-Net-Worth Investors** | Asset protection, Plan B residency | Singapore, Greece, Malta, UAE |
+| **Retirees** | Low cost of living, high-quality retirement visas | Malaysia (MM2H), Thailand (LTR), Portugal |
+| **Hong Kong Talent** | Moving assets/families, securing secondary passports | UK, Canada, Australia, Taiwan |
 
 ---
 
 ## User Pain Points
-1. **Severe Information Overload**: The same immigration draw or fee update is republished by hundreds of law blogs and forums, cluttering search feeds.
-2. **High Latency in Official News**: Accessing information on official sites often requires manually checking multiple unstructured "Press Releases" pages.
-3. **Misleading Commentary & Rumors**: Unregulated blogs and social media channels (e.g., Reddit, Xiaohongshu, YouTube) frequently exaggerate policy changes to drive traffic, leading to anxiety and incorrect visa applications.
-4. **Lack of Original References**: Media outlets often omit links to official gazettes or immigration circulars, making validation difficult.
 
----
-
-## Data Source Catalog (Non-RSS Focus)
-To achieve GA coverage, the ingestion engine must harvest data from diverse, non-RSS sources:
-
-| Destination | Primary Ingestion Source | Ingestion Method | Alternative Channels |
-| :--- | :--- | :--- | :--- |
-| **United States** | Federal Register API (`federalregister.gov/api`) | JSON API (queries USCIS, DHS, DOS, DOL) | Department of State Visa Bulletin Web Scraper, AILA InfoNet portal |
-| **Canada** | Canada Gazette (Part I & II) | PDF parsing & HTML scraping | IRCC Newsroom web-scraping (using headless browsers for JS-heavy pages) |
-| **United Kingdom** | GOV.UK Statements of Changes in Immigration Rules | Web scraping of legislative index pages | Home Office media statements, Upper Tribunal Immigration court decisions |
-| **Australia** | Federal Register of Legislation (`legislation.gov.au`) | Scraping legislative databases for statutory instruments | Department of Home Affairs Media Centre updates |
-| **New Zealand** | New Zealand Gazette & Immigration NZ Announcements | Scraping Gazette API / HTML tables | Legal updates from NZ Association for Migration & Investment (NZAMI) |
-| **Singapore** | Singapore Statutes Online & ICA Announcements | HTML monitoring & change detection | Ministry of Manpower (MOM) news releases |
-| **European Union** | European Migration Network (EMN) updates | Scraping country-specific EMN reports | National Gazettes (e.g., BOE Spain, Journal Officiel France) |
-| **Japan & S. Korea** | Ministry of Justice (MOJ) Press Rooms | Scrapers targeting translated press rooms | Official government gazettes (Kanpō Japan) |
-| **Global Industry** | Lexology, JD Supra, Fragomen Insights | HTML parsing of corporate newsrooms | AILA, CBA, and Law Society newsletters |
+* **Policy Volatility:** Immigration rules change rapidly. Missing a policy shift (e.g., sudden closure of a visa program) degrades content timeliness.
+* **High Curation Overhead:** Creators must read articles across different time zones, languages, and formats.
+* **Information Clutter:** News agencies duplicate identical press releases, creating repetitive feeds.
+* **Relevance Filtering:** Most global immigration news (e.g., domestic border enforcement or refugee policy) has zero relevance to middle-class Chinese migrants looking for legal visas.
 
 ---
 
 ## Competitor Analysis
 
-| Competitor | Target | Strengths | Weaknesses / GA Gaps |
+| Solution | Strengths | Weaknesses | Relevance to "雨田在海外" |
 | :--- | :--- | :--- | :--- |
-| **Fragomen / BAL / Envoy Insights** | Enterprise B2B | Deep legal expertise, highly structured briefs, global presence. | Gated portals; no personalization for individual candidates; no custom cross-country comparison tools; no real-time push/SMS alerts. |
-| **Nomad Gate / Citizen Remote** | Digital Nomads | High-quality design, comparison tables for nomad visas. | Focus is static; does not track daily/weekly dynamic policy changes, draws, or legislative updates. |
-| **TRAC Immigration (Syracuse University)** | Researchers | Massive data sets, court backlog statistics. | Raw data focus; no timely news alerts or practical guides for applicants. |
-| **Reddit & WeChat Communities** | General Public | Instant, crowd-sourced translations and experiences. | Extreme noise, high rate of misinformation, lack of structured verification or links to official sources. |
+| **Generic RSS Reader** (Feedly, Inoreader) | Stable, supports thousands of feeds, clean UI. | No automatic translation, no custom scoring, no duplicate grouping. | High manual sorting required. |
+| **Immigration Agency Blogs** | Hand-curated, highly accurate. | Biased toward programs they sell; slow to report broad global news. | Secondary reference source only. |
+| **Social Media Curators** (WeChat/Xiaohongshu) | Highly tuned to Chinese interests. | Fragmented, unstructured, prone to rumors/misinformation. | Good for identifying topics, bad for tracking policy changes. |
 
 ---
 
-## Technology Landscape for GA Scale
-The GA system must run a scalable, high-availability pipeline to ingest, clean, deduplicate, tag, and alert.
+## Technology Landscape
 
-```mermaid
-graph TD
-    A[Data Ingestion: APIs, Scrapers, Gazettes] --> B[Data Normalization & Cleaning]
-    B --> C[Embedding Engine: OpenAI text-embedding-3-large]
-    C --> D[Vector DB: Qdrant / Pgvector Similarity Check]
-    D -- Cosine Similarity > 0.88 --> E[Deduplication Analyzer]
-    D -- Cosine Similarity <= 0.88 --> F[New Article Queue]
-    E --> G{50% Difference Principle Check}
-    G -- Novel Commentary > 50% --> F
-    G -- Novel Commentary <= 50% --> H[Merge with Existing / Archive]
-    F --> I[Zero-Shot Multi-Label Tagging Model]
-    I --> J[GA News Database]
-    J --> K[Delivery: Web, Email, SMS/Push Alerts]
-```
+### 1. Workflow Automation (n8n)
+n8n is selected due to its node-based execution model and native integration with databases and HTTP clients. Self-hosting n8n via Docker avoids execution quotas common in cloud solutions (Zapier, Make).
 
-### 1. Vector Database & Embeddings
-- **Models**: OpenAI `text-embedding-3-large` or Cohere `embed-english-v3` for high-dimensional semantic accuracy.
-- **Database**: Qdrant or Pinecone cluster, or `pgvector` in PostgreSQL for unified relational and vector data storage.
+### 2. Large Language Model (MiniMax M3)
+MiniMax M3 offers several unique advantages for this system:
+* **API Compatibility:** Emulates the Anthropic Messages API, permitting direct integration using standard client libraries.
+* **Bilingual Proficiency:** Exceptional performance in Chinese-English translation and semantic analysis.
+* **Context Capacity:** 1M context window accommodates batch processing if required.
+* **Cost Efficiency:** Significantly lower token cost compared to Claude 3.5 Sonnet or GPT-4o.
 
-### 2. The 50% Difference Principle Pipeline
-To implement this principle at GA scale:
-1. **Cosine Similarity Filter**: Compute the cosine similarity of the incoming article vector against articles from the same country and category published in the last 72 hours. If similarity is $< 0.88$, it is automatically classified as a new event.
-2. **Fact & Variable Extraction**: For articles with similarity $\ge 0.88$, extract key policy variables using Named Entity Recognition (NER) or an LLM (e.g., target country, visa subclass, score threshold, draw date, filing fee).
-3. **Commentary Analysis**: Split the article into:
-   - *Factual Core*: The raw regulatory announcement (e.g., "H-1B registration fees will rise to $215").
-   - *Derivative Content*: Practical analysis, legal strategy, future expectations, or expert commentary.
-4. **Volume Assessment**: If the derivative commentary contains over 50% new tokens compared to the previously indexed article, index it as a new "Analysis" article associated with the main event. If it is just a reprint of facts, merge the source link into the existing article's "Alternative Coverages" list.
+### 3. Database (PostgreSQL + pgvector)
+PostgreSQL handles relational metadata. The addition of `pgvector` enables vector cosine similarity searches over embedded titles/summaries to detect semantic duplicates, supplementing simple URL and token overlap models.
 
-### 3. Automated Classification & Tagging
-- **Multi-Label Tagging**: A zero-shot classification system mapping articles to:
-  - **Country Tags** (e.g., `US`, `CA`, `DE`).
-  - **Feature Tags** (`Raising a Family`, `Education`, `Language`, `Retirement`, `Vacation`, `Culture Inclusion`, `Corporate Sponsorship`).
+### 4. Edge Frontend (Next.js + Cloudflare Tunnel)
+Next.js provides a highly interactive user experience. Deploying to Cloudflare Pages places the frontend on a global CDN. Cloudflare Tunnel secures communications back to the self-hosted FastAPI server without opening firewall ports.
 
 ---
 
 ## Industry Trends
-- **API-First Government Data**: Digital transformation of immigration departments (e.g., UK's eVisa transition, EU's ETIAS rollout) leads to more structured, digitized announcements.
-- **Demand for Hyper-Personalization**: Users expect alerts tailored specifically to their profiles (e.g., "Send me SMS alerts only for Canadian Express Entry draws when the score drops below 480").
+
+1. **The "Plan B" Sentiment:** Demand for secondary residencies remains strong among mainland Chinese.
+2. **Rise of Cultural Proximity:** Due to rising costs in Europe and long backlogs in the US, Japan has become a primary target.
+3. **Residency-First Programs:** High-net-worth individuals increasingly choose golden visas that do not require physical relocation, allowing them to remain in China.
+4. **AI-Enabled Micro-Newsrooms:** Independent creators are adopting AI curation workflows to compete with traditional news media outlets.
 
 ---
 
 ## Regulatory Considerations
-- **GDPR / CCPA Compliance**: Strict user data consent for storage of preferences, search histories, and notification coordinates (emails, phone numbers).
-- **Fair Use & Copyright Protection**: The platform must present original summaries, key takeaways, and analysis while always providing back-links to the target law firm or official gazette. Scrapers must respect `robots.txt` where legally required, using public inspection endpoints.
-- **Legal Liabilities**: Crucial to implement a prominent global disclaimer: *"ImmiPulse provides information and policy updates for educational purposes only. It does not constitute legal or professional immigration advice."*
+
+### 1. Copyright and Fair Use
+* **Principle:** Storing full-text articles without permission risks copyright infringement.
+* **Mitigation:** The system must only store metadata (URLs, headlines, AI-generated short summaries). It does not store original article bodies or media files. A link to the original article is always displayed.
+
+### 2. Scraping and Web Crawling Policies
+* **Principle:** Some portals actively block scrapers (e.g., Cloudflare protection, robots.txt directives).
+* **Mitigation:** The primary feed sources are RSS aggregators (Google Alerts) and public API endpoints, which are designed for automated consumption.
+
+### 3. Data Privacy
+* **Principle:** Keeping personal identifying information (PII) incurs GDPR/CCPA overhead.
+* **Mitigation:** The database holds public news articles only. No subscriber or user data is captured.
 
 ---
 
 ## Business Risks
-- **Monetization Fit**: Traditional ads compromise the "Less is More" premium aesthetic. GA monetization should rely on a freemium model:
-  - **Free Tier**: Access to the web portal, basic tagging, and weekly digests.
-  - **Premium Tier (SaaS)**: Instant SMS/WhatsApp/Push alerts, customized keyword filters, access to historical policy change timelines, and B2B corporate mobility licensing.
-- **High Retention Churn**: Natural user churn after a visa is granted. Mitigate by providing "Post-Landing" tags (`Culture Inclusion`, `Raising a Family` in the new country).
+
+| Risk | Description | Impact | Mitigation Strategy |
+| :--- | :--- | :--- | :--- |
+| **Low Relevance Accuracy** | LLM miscategorizes articles or grades low-value stories highly. | High | Establish detailed guidelines in the system prompt; incorporate clear criteria for Chinese relevance and video scoring. |
+| **Topic Fragmentation** | Curation focuses too much on small details, missing large trends. | Medium | Generate weekly AI-summarized digests grouping small policy changes under global trends. |
 
 ---
 
 ## Technical Risks
-- **Scraper Blockades & Maintenance**: Regular changes in government page structures require a robust monitoring system that alerts developers when a scraper fails or returns empty data.
-- **Deduplication Errors**: Incorrectly filtering out a critical policy modification because it closely resembles a previous post. Mitigate by routing borderline cases (similarity $0.85 - 0.90$) to a human-in-the-loop validation queue.
+
+| Risk | Description | Impact | Mitigation Strategy |
+| :--- | :--- | :--- | :--- |
+| **MiniMax API Outages** | The translation or analysis workflow fails due to API downtime. | Medium | Store raw articles in a queue; retry execution; fall back to a mock or secondary LLM provider if offline. |
+| **False Grouping in De-duplication** | Vector similarity groups two distinct articles (e.g., US visa limits and UK visa limits) together. | High | Calibrate the similarity threshold (e.g., set to 0.88–0.92); require that duplicate groups share the same country and topic tags. |
+| **Self-Hosted Network Flakiness** | Ubuntu server loses connection, breaking the Cloudflare Tunnel. | Medium | Configure heartbeat monitoring; implement automatic system restarts for Docker services. |
 
 ---
 
 ## Market Risks
-- **Incumbent Law Firms**: Large firms could restrict access to their blogs or sue for trademark/copyright violations. Curation must remain objective and strictly follow fair-use guidelines.
+
+* **Algorithm Shifts:** Sudden changes in YouTube's recommendation system might prioritize short-form video (Shorts) over deep-dive weekly policy reviews, requiring the scoring system to adjust which topics get higher scores.
+* **Platform Censorship:** High-sensitivity political topics regarding immigration can face restriction on mainland Chinese platforms (if crossposted), meaning the curation scoring system must flag high-sensitivity stories.
 
 ---
 
 ## Opportunity Assessment
-By targeting GA directly, ImmiPulse bypasses the limitations of an MVP. Establishing a global, multi-destination data model from day one allows the engine to create immediate value through comparative policy tracking (e.g., contrasting the UK's and Germany's digital nomad provisions side-by-side). 
+
+By deploying Yutian Immigration AI Newsroom, the creator transitions from a reactive manual search process to a proactive editorial desk:
+* **Workflow Savings:** Estimated reduction in review time from 90 minutes to under 10 minutes daily.
+* **Competitive Edge:** The ability to instantly identify changes in niche destinations (like Malta, Greece, or Malaysia) that mainstream creators overlook.
+* **Consistency:** Automatic tracking prevents missing critical draw deadlines or visa announcements.
 
 ---
 
-## Recommended Production Scope (GA Release)
+## Recommended Opportunities
 
-### 1. Ingestion Pipeline
-- Complete coverage of 10 primary immigration jurisdictions (US, CA, UK, AU, NZ, SG, DE, ES, IE, JP).
-- Integration of the U.S. Federal Register API, Canada Gazette, UK GOV.UK legislation registries, and automated web scrapers for other destination newsrooms.
-- Lexology, JD Supra, and top-tier global immigration law firm feeds.
-
-### 2. AI & Deduplication Core
-- Qdrant or `pgvector` index populated via OpenAI `text-embedding-3-large`.
-- Automated **50% Difference Engine** using a lightweight LLM (e.g., Claude 3.5 Haiku or GPT-4o-mini) to split facts from commentary and compute novelty percentage.
-- Automatic tagging for countries and the 6 core feature tags.
-
-### 3. User Experience & Customization
-- Responsive Web Dashboard (Desktop + Mobile) with zero placeholders and a premium dark/glassmorphic design.
-- User accounts with advanced filter subscription rules.
-- Hard limit of 10 primary stories pushed per user per day.
-
-### 4. Notification & Delivery Engine
-- Email digest integration.
-- Web Push API and SMS/WhatsApp API gateway integrations (e.g., via Twilio) for high-priority keyword alarms.
+1. **Granular Multi-Dimensional Scoring:**
+   * **Importance Score (0–100):** Global policy impact.
+   * **Chinese Relevance (0–100):** Interest levels for Chinese nationals.
+   * **Video Score (0–100):** Suitability for storytelling.
+   * **Evergreen Score (0–100):** Value of content over 6+ months.
+2. **Interactive Search and Filtering:** Implement a side drawer for deep reading without navigating away, allowing rapid scanning.
+3. **Weekly Planning Board:** Include a "Save Candidate" feature that transitions a story from "News Feed" to a "YouTube Script Planning Board".
 
 ---
 
-## Open Questions
-1. **Dynamic Scraping Costs**: What is the projected cost of using proxy-rotation services (e.g., Bright Data, ZenRows) to scrape government portals that use heavy anti-bot protections?
-2. **Translation Strategy**: Since mainstream immigration covers Japan and South Korea, how should translation be handled? Should the database store original texts or run automated, high-fidelity translation (e.g., DeepL API) prior to embedding and deduplication?
-3. **Law Firm Partnerships**: Could we establish direct syndication agreements with major immigration law networks to secure structured JSON feeds, reducing scraping maintenance?
+## Recommended Scope
+
+### Phase 1: Core Automation (MVP)
+* Set up self-hosted n8n and PostgreSQL.
+* Implement RSS collection (Google Alerts + selected government feeds).
+* Create the MiniMax M3 translation, analysis, and scoring pipeline.
+* Develop the FastAPI backend exposing filterable news endpoints.
+* Build the basic Next.js dashboard displaying top stories with country/topic filters.
+
+### Phase 2: Refined Curation & De-duplication
+* Introduce pgvector-based semantic de-duplication.
+* Implement a detailed planning board page for saved candidates.
+* Add manual editing of tags and custom annotations.
+
+---
+
+## Decisions & Resolved Questions
+
+1. **MiniMax M3 Latency & Timeout Mitigation:** n8n workflows will utilize an asynchronous webhook pattern to handle batch parallel requests to the MiniMax M3 API, preventing execution timeouts.
+2. **Feeds Rate Limits & Google Alerts:** At this stage (Phase 1), RSS feeds (Google Alerts RSS and direct government feeds) are sufficient. Other data sources (such as custom Puppeteer scrapers) can be added modularly in future iterations. Feed checks will be scheduled every 3-4 hours to prevent rate limits.
+3. **Local Embedding Service:** We will run a local, free HuggingFace embedding container (hosting `all-MiniLM-L6-v2`) on the Ubuntu server for de-duplication, avoiding API-based embedding costs.
 
 ---
 
 ## Research References
-- **U.S. Federal Register API**: [https://www.federalregister.gov/developers/api/v1](https://www.federalregister.gov/developers/api/v1)
-- **Canada Gazette Archives**: [https://www.gazette.gc.ca/](https://www.gazette.gc.ca/)
-- **GOV.UK Legislation Portal**: [https://www.legislation.gov.uk/](https://www.legislation.gov.uk/)
-- **Australia Federal Register of Legislation**: [https://www.legislation.gov.uk/](https://www.legislation.gov.uk/) (via [https://www.legislation.gov.au/](https://www.legislation.gov.au/))
-- **European Migration Network Legislation search**: [https://www.emn.ie/](https://www.emn.ie/)
-- **Fragomen Global Insights**: [https://www.fragomen.com/insights.html](https://www.fragomen.com/insights.html)
-- **Lexology Newsfeed**: [https://www.lexology.com/](https://www.lexology.com/)
+
+* **USCIS Newsroom:** [uscis.gov/newsroom](https://www.uscis.gov/newsroom)
+* **IRCC News:** [canada.ca/en/immigration-refugees-citizenship/news](https://www.canada.ca/en/immigration-refugees-citizenship/news)
+* **UK Home Office Media Blog:** [homeofficemedia.blog.gov.uk](https://homeofficemedia.blog.gov.uk)
+* **MiniMax Developer Documentation:** [developer.minimax.io](https://developer.minimax.io)
+* **pgvector Repository:** [github.com/pgvector/pgvector](https://github.com/pgvector/pgvector)

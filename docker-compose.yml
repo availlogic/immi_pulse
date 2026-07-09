@@ -1,137 +1,87 @@
+version: '3.8'
+
 services:
-  db:
-    image: pgvector/pgvector:0.8.0-pg17
+  postgres:
+    image: pgvector/pgvector:0.7.0-pg16
     container_name: immipulse-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: immipulse
-      POSTGRES_USER: immipulse
-      POSTGRES_PASSWORD: immipulse_dev
-    # Stage 5.1.2: in dev mode, expose for local tools. Production overlay
-    # removes this mapping per Architecture.md §5 ("Zero Exposed Ports").
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${DB_USER:-yutian}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./db/migrations:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U immipulse -d immipulse"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  api-gateway:
-    build:
-      context: ./backend
-    container_name: immipulse-api
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgres://immipulse:immipulse_dev@db:5432/immipulse
-      JWT_SECRET: dev_jwt_secret_change_in_prod_12345
-      JWT_EXPIRES_HOURS: "168"
-      BCRYPT_ROUNDS: "10"
-      PORT: "3000"
-      NODE_ENV: development
-      CORS_ORIGIN: "http://localhost:5173"
-      # Stage 5.2: cookie auth configuration
-      COOKIE_SECURE: "false"
-      COOKIE_SAMESITE: "lax"
-      COOKIE_DOMAIN: ""
-      # Stage 5.3.5: IAB TCF v2 consent gate
-      CONSENT_REQUIRED: "false"
-      SMTP_HOST: mailhog
-      SMTP_PORT: "1025"
-      SMTP_FROM: no-reply@immipulse.local
-    # Stage 5.1.2: api-gateway is the only host-exposed backend port.
-    # In production, this mapping is removed and the only ingress is
-    # cloudflared (see docker-compose.prod.yml).
+      - ./backend/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
+    networks:
+      - internal-net
     ports:
-      - "3000:3000"
-    command: ["node", "--import", "tsx", "src/server.ts"]
+      - "127.0.0.1:5432:5432"
 
-  notification-broker:
-    build:
-      context: ./backend
-    container_name: immipulse-broker
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgres://immipulse:immipulse_dev@db:5432/immipulse
-      JWT_SECRET: dev_jwt_secret_change_in_prod_12345
-      SMTP_HOST: mailhog
-      SMTP_PORT: "1025"
-      SMTP_FROM: no-reply@immipulse.local
-      BROKER_POLL_INTERVAL_SECONDS: "15"
-      SCRAPER_FAILURE_WINDOW_HOURS: "8"
-    command: ["node", "--import", "tsx", "src/notifications/broker.ts"]
-
-  ingestion-service:
-    build:
-      context: ./ingestion
-    container_name: immipulse-ingestion
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgres://immipulse:immipulse_dev@db:5432/immipulse
-      EMBEDDING_PROVIDER: mock
-      OPENAI_API_KEY: ""
-      OPENAI_EMBEDDING_MODEL: text-embedding-3-large
-      FIFTY_PERCENT_PROVIDER: token_overlap
-      LLM_API_KEY: ""
-      LLM_BASE_URL: "https://api.anthropic.com"
-      LLM_MODEL: "claude-3-5-haiku-latest"
-      LLM_REVIEW_THRESHOLD: "0.85"
-      SCRAPER_INTERVAL_HOURS: "24"
-      TTL_DAYS: "60"
-      SIMILARITY_THRESHOLD: "0.88"
-      ENABLED_SCRAPERS: ""
-    command: ["python", "-m", "src.main"]
-
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: immipulse-mailhog
-    ports:
-      - "1025:1025"
-      - "8025:8025"
-
-  frontend:
-    build:
-      context: ./frontend
-    container_name: immipulse-frontend
-    depends_on:
-      - api-gateway
-    environment:
-      VITE_API_BASE: http://localhost:3000/api/v1
-    ports:
-      - "5173:5173"
-    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
-
-  # Stage 5.1.1: Cloudflare Tunnel daemon.
-  # In local dev this service is brought up with `TUNNEL_TOKEN=` (empty)
-  # which causes cloudflared to fall back to a `tunnel-disabled` no-op mode
-  # (see the Dockerfile). The api-gateway port remains the only ingress.
-  #
-  # In production, set CLOUDFLARE_TUNNEL_TOKEN to the token issued by
-  # `cloudflared tunnel create immipulse`. The tunnel routes
-  # api.immipulse.com -> api-gateway:3000 and immipulse.com -> a separately
-  # hosted Cloudflare Pages project.
-  cloudflared:
-    image: cloudflare/cloudflared:2024.5.0
-    container_name: immipulse-cloudflared
-    depends_on:
-      - api-gateway
-    environment:
-      TUNNEL_TOKEN: "${CLOUDFLARE_TUNNEL_TOKEN:-}"
-    command: ["cloudflared", "--no-autoupdate", "tunnel", "--config", "/etc/cloudflared/config.yml", "run"]
-    # Stage 5.1.1: in dev mode this container exits fast because there is
-    # no tunnel. We keep it optional via restart: on-failure so the
-    # overall compose stack stays healthy when the token is empty.
-    restart: "no"
+  tei-embeddings:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.2
+    container_name: immipulse-embeddings
+    restart: unless-stopped
+    command: --model-id sentence-transformers/all-MiniLM-L6-v2
     volumes:
-      - ./docker/cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+      - tei-cache:/data
+    networks:
+      - internal-net
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: immipulse-n8n
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - DATABASE_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=immipulse
+      - DB_POSTGRESDB_USER=${DB_USER:-yutian}
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD}
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - internal-net
+    ports:
+      - "127.0.0.1:5678:5678"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: immipulse-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-yutian}:${DB_PASSWORD}@postgres:5432/immipulse
+      - DASHBOARD_API_TOKEN=${DASHBOARD_API_TOKEN}
+    depends_on:
+      - postgres
+    networks:
+      - internal-net
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: immipulse-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      - backend
+    networks:
+      - internal-net
+
+networks:
+  internal-net:
+    driver: bridge
 
 volumes:
   pgdata:
+  tei-cache:
+  n8n_data:

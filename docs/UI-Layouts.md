@@ -1,127 +1,143 @@
-# ImmiPulse - UI Layouts & Wireframes
+# UI Layouts Spec: Yutian Immigration AI Newsroom
 
-## 1. Grid & Responsive Layout Regions
-
-### 1.1 Desktop Layout (Viewport >= 1200px)
-- **Top Header**: Fixed height (`72px`), spans full width. Consists of navigation links and auth buttons.
-- **Sidebar**: Fixed width (`320px`), sticky positioning on the left/right. Contains quick tags, statistics, and filters.
-- **Main Container**: Fluid width, containing active filter badges at the top, and the vertical grid feed in the center.
-
-### 1.2 Mobile Layout (Viewport < 768px)
-- **Top Header**: Minimal height (`60px`). Displays logo and a hamburger menu trigger on the left, login status on the right.
-- **Main Scroll Area**: Spans full screen width. Filters are collapsed behind a floating action button (FAB) labeled "Filters".
-- **Navigation Bar**: Optional bottom nav bar with tabs for Dashboard, Settings, and Alerts.
+This document defines the interface layout structure, responsive grids, and structural wireframes for the Yutian Immigration AI Newsroom (ImmiPulse).
 
 ---
 
-## 2. Desktop Dashboard Wireframe (ASCII)
+## 1. Global Navigation & Layout Architecture
 
-```
-+-----------------------------------------------------------------------------------+
-|  LOGO      [Dashboard]  [Settings]  [Alerts]              (Login / Register Button) |
-+-----------------------------------------------------------------------------------+
-|  Active Filters: [Canada x] [Retirement x] [Vacation x]                           |
-+-----------------------------------------------------------------------------------+
-|                                                  |  SUBSCRIBED JURISDICTIONS      |
-|  +--------------------------------------------+  |  [ ] United States             |
-|  | ARTICLE CARD (Title, Summary, Date, Tags)  |  |  [x] Canada                    |
-|  | Authority: [Gov (5)]                       |  |  [ ] United Kingdom            |
-|  | Badges: [CA] [Retirement] [Vacation]       |  |  [ ] Australia                 |
-|  +--------------------------------------------+  |                                |
-|                                                  |  SUBSCRIBED FEATURE TAGS       |
-|  +--------------------------------------------+  |  [ ] Raising a Family          |
-|  | ARTICLE CARD (Title, Summary, Date, Tags)  |  |  [ ] Education                 |
-|  | Authority: [Law Firm (3)]                  |  |  [x] Retirement                |
-|  | Badges: [US] [Corporate Sponsorship]       |  |  [x] Vacation                  |
-|  +--------------------------------------------+  |  [ ] Culture Inclusion         |
-|                                                  |                                |
-|  +--------------------------------------------+  |  [Save Preferences Button]     |
-|  | ARTICLE CARD (Title, Summary, Date, Tags)  |  |                                |
-|  +--------------------------------------------+  |  (Preferences disabled/blurred |
-|                                                  |   for Unregistered guests)     |
-+-----------------------------------------------------------------------------------+
-|  Footer: Legal Disclaimer | Terms of Use | Contact Support                        |
-+-----------------------------------------------------------------------------------+
-```
+The application is structured around a single-page app layout with a main viewing container and an overlay detail drawer.
+
+### 1.1 Responsive Shell Structure
+- **Desktop (>= 1024px):** Persistent left sidebar navigation (240px wide). Main content area takes up the remaining viewport width.
+- **Tablet (768px - 1023px):** Collapsed left sidebar navigation (72px wide, icon-only). Main content area takes up the remaining viewport width.
+- **Mobile (< 768px):** Bottom navigation bar (56px high). Header bar (56px high) with toggle filters. Main content area sits in the middle.
 
 ---
 
-## 3. Mobile Dashboard Wireframe (ASCII)
+## 2. Desktop Dashboard Wireframe (Grid View)
+
+Below is an ASCII layout of the main dashboard on desktop, showing the Sidebar, Header, Filter panel, Card Grid, and the Detail Drawer sliding overlay.
 
 ```
-+--------------------------------------------------+
-|  [Hamburger]             LOGO            [Login] |
-+--------------------------------------------------+
-|  Active Filters: [Canada x]                      |
-+--------------------------------------------------+
-|                                                  |
-|  +--------------------------------------------+  |
-|  | ARTICLE CARD                               |  |
-|  | [CA] [Retirement]                          |  |
-|  | Publication Date                           |  |
-|  +--------------------------------------------+  |
-|                                                  |
-|  +--------------------------------------------+  |
-|  | ARTICLE CARD                               |  |
-|  | [US] [Corporate]                           |  |
-|  +--------------------------------------------+  |
-|                                                  |
-|                   [ Floating FAB: Filters ]      |
-|                                                  |
-+--------------------------------------------------+
-|  [Dashboard Tab]    [Settings Tab]  [Alerts Tab] |
-+--------------------------------------------------+
++-----------------------------------------------------------------------------------------+
+|                                  YUTIAN IMMIGRATION NEWSROOM                             |
++=========================================================================================+
+| [LOGO] ImmiPulse     | Search Stories... [Q]                       [Online Indicator]   |
++----------------------+------------------------------------------------------------------+
+| (D) Feed             | Country Filters:                                                 |
+|                      | [USA x] [Canada x] [Japan] [UK] [Australia]   [+ Country]        |
+| (⭐) Candidates      |                                                                  |
+|                      | Topics: [Work Visa] [PR] [Golden Visa]                           |
+|                      |                                                                  |
+| [Settings]           | Show Low Relevance: [o] Off (Scores < 60 hidden)                 |
+|                      | Sort: [Newest | Video Score | Chinese Relevance]                 |
+|                      +------------------------------------------------------------------+
+|                      | NEWS ITEMS FEED                                | DETAIL DRAWER    |
+|                      | +------------------------+ +-----------------+ | (X) Close        |
+|                      | | CANADA | VS: 82  CR: 90 | | JAPAN  | VS: 75 | | Star [⭐ Starred]|
+|                      | | Express Entry Draws... | | Skilled Visa... | |                  |
+|                      | | Reuters | 2 hrs ago    | | BBC | 4 hrs ago | | [Chinese] [EN]  |
+|                      | | +2 sources             | |                 | |                  |
+|                      | +------------------------+ +-----------------+ | Title (ZH):      |
+|                      | +------------------------+ +-----------------+ | 加拿大快速通道...|
+|                      | | USA | VS: 68   CR: 72  | | UK | VS: 55     | |                  |
+|                      | | USCIS H1-B Cap Met     | | Policy Shift    | | Scores:          |
+|                      | | USCIS | 6 hrs ago      | | Guardian        | | VS: ====== [82]  |
+|                      | +------------------------+ +-----------------+ | CR: ======= [90] |
+|                      | +------------------------+ +-----------------+ |                  |
+|                      | | MALAYSIA | VS: 42 (LR) | | NZ | VS: 80     | | AI Analysis:   |
+|                      | | MM2H Updates           | | PR Cap Set      | | 本次政策调整...|
+|                      | | Star | 1 day ago       | | DHA | 1 day ago | |                  |
+|                      | +------------------------+ +-----------------+ | Editor Notes:    |
+|                      |                                                | [Write notes...] |
+|                      |                                                | [Auto-saved pill]|
++----------------------+------------------------------------------------------------------+
 ```
 
 ---
 
-## 4. Settings Screen Wireframe (Basic & Premium)
+## 3. Mobile Feed Layout (Detail Drawer as Bottom Sheet)
+
+On mobile, the interface collapses:
+- Sidebar disappears; navigation goes to the bottom.
+- Columns collapse to a single list stack.
+- Filter panels become collapsible accordions or floating toggles.
+- Detail drawer opens as a full-width slide-up bottom sheet.
 
 ```
-+-----------------------------------------------------------------------------------+
-|  LOGO      [Dashboard]  [Settings]  [Alerts]                              [Logout] |
-+-----------------------------------------------------------------------------------+
-|  h1: Preferences & Subscription Settings                                          |
-|                                                                                   |
-|  Select Jurisdictions:                                                            |
-|  [x] United States   [ ] Canada         [ ] United Kingdom   [ ] Australia        |
-|  [ ] New Zealand     [ ] Singapore      [ ] Germany          [ ] France           |
-|  [ ] Spain           [ ] Ireland        [ ] Japan            [ ] South Korea      |
-|  [ ] Malaysia        [ ] Thailand       [ ] UAE              [ ] Brazil           |
-|                                                                                   |
-|  Select Feature Tags:                                                             |
-|  [x] Raising a Family   [x] Education   [ ] Retirement   [ ] Vacation             |
-|  [ ] Culture Inclusion  [ ] Corporate Sponsorship                                 |
-|                                                                                   |
-|  Digest Frequency:                                                                |
-|  (Dropdown: Daily / Weekly / None) [ Daily      ]                                 |
-|                                                                                   |
-|  [ Save Preferences Button ]        ( Reset to Global Feed )                      |
-|                                                                                   |
-+-----------------------------------------------------------------------------------+
++-----------------------------------+
+|  [Q] Search stories...      (===) | <-- Header Bar (Search & Filter toggle)
++-----------------------------------+
+|  Active Filters: [Canada] [PR]    |
++-----------------------------------+
+|  [ CANADA | VS: 82 | CR: 90 ]     |
+|  Express Entry Draw Update        |
+|  Reuters | 2 hrs ago              |
++-----------------------------------+
+|  [ JAPAN | VS: 75 | CR: 80 ]      |
+|  New Point Allocation Policy      |
+|  BBC | 4 hrs ago                  |
++-----------------------------------+
+|  [ USA | VS: 68 | CR: 72 ]        |
+|  H1B Visa Program Caps Adjusted   |
+|  USCIS | 6 hrs ago                |
++-----------------------------------+
+|                                   |
+|                                   |
+|    +-------------------------+    |
+|    | BOTTOM DETAIL SHEET     |    | <-- Slide up bottom sheet on card tap
+|    | (=== Drag Bar)  (X)     |    |
+|    | Title (ZH): 加拿大更新   |    |
+|    | VS Badge: [ 82 ]        |    |
+|    | AI Analysis: ...        |    |
+|    | Notes: [ Write notes. ] |    |
+|    +-------------------------+    |
++-----------------------------------+
+|  (Feed)     (⭐ Candidates) (Settings) <-- Bottom Navigation Bar (56px)
++-----------------------------------+
 ```
 
 ---
 
-## 5. Alarms Screen Wireframe (Premium Only)
+## 4. Screen: Saved Candidates Layout (Desktop Workspace)
+
+On desktop, the Saved Candidates screen uses a **split double-pane layout** rather than an overlay drawer. This allows Yutian to review his planning board on the left and write out the scripting outlines on the right simultaneously.
 
 ```
-+-----------------------------------------------------------------------------------+
-|  LOGO      [Dashboard]  [Settings]  [Alerts]                              [Logout] |
-+-----------------------------------------------------------------------------------+
-|  h1: Configure Keyword Alerts                                                     |
-|                                                                                   |
-|  Add New Alert rule:                                                              |
-|  Jurisdiction: [ Select Dropdown... ]   Keyword: [ Enter word... ] [ Create Alarm ]|
-|                                                                                   |
-|  -------------------------------------------------------------------------------  |
-|  Active Alarms:                                                                   |
-|                                                                                   |
-|  +-----------------------------------------------------------------------------+  |
-|  |  Jurisdiction: United Kingdom  |  Keyword: salary threshold  |  (Delete)    |  |
-|  +-----------------------------------------------------------------------------+  |
-|  |  Jurisdiction: Canada          |  Keyword: express entry     |  (Delete)    |  |
-|  +-----------------------------------------------------------------------------+  |
-|                                                                                   |
-+-----------------------------------------------------------------------------------+
++-----------------------------------------------------------------------------------------+
+|                                  YUTIAN IMMIGRATION NEWSROOM                             |
++=========================================================================================+
+| [LOGO] ImmiPulse     | Candidates Desk (5 Stories Starred)         [Online Indicator]   |
++----------------------+---------------------------------+--------------------------------+
+| (D) Feed             | CANDIDATE LIST                  | EDITORIAL SCRIPTING OUTLINE    |
+|                      | +-----------------------------+ | Selected Topic: Canada EE Draw |
+| (⭐) Candidates      | | CANADA | VS: 82  CR: 90     | | Suggested Video Titles (ZH):   |
+|                      | | Express Entry Draws...      | | 1. 2026加拿大快速通道暴跌!    |
+|                      | | Starred: Today at 9:00 AM   | | 2. 移民新规速递：PR门槛调整  |
+| [Settings]           | +-----------------------------+ |                                |
+|                      | +-----------------------------+ | AI Demographic Impact:         |
+|                      | | JAPAN  | VS: 75   CR: 80    | | 对IT及工程类背景人才有利...  |
+|                      | | Points allocation change    | |                                |
+|                      | | Starred: Yesterday          | | Creator Script Outline:       |
+|                      | +-----------------------------+ | +----------------------------+ |
+|                      | +-----------------------------+ | | Hook: 昨晚移民局突然...     |
+|                      | | NZ | VS: 80      CR: 85     | | | Point 1: 政策分数变化      |
+|                      | | Active PR Cap Set           | | | Point 2: 申请人策略应对    |
+|                      | | Starred: 2 days ago         | | +----------------------------+ |
+|                      | +-----------------------------+ | [Checkmark] Outline Auto-saved |
+|                      |                                 | [ COPY OUTLINE TO CLIPBOARD ]  |
++----------------------+---------------------------------+--------------------------------+
 ```
+
+---
+
+## 5. Layout Alignment Matrix
+
+| Layout Region | Desktop Viewport | Tablet Viewport | Mobile Viewport |
+| :--- | :--- | :--- | :--- |
+| **Global Navigation** | Left Sidebar (240px) | Left Sidebar Collapsed (72px) | Bottom Tab Bar (56px) |
+| **Workspace Layout** | Split-pane/Drawer Overlay | Drawer Overlay | Full-width Grid / Vertical list |
+| **Detail Drawer** | Slide-in Drawer from Right (500px wide) | Slide-in Drawer from Right (450px wide) | Slide-up Bottom Sheet (100% viewport width) |
+| **Filters Panel** | Left Filter Column (under Nav or header) | Collapsible Header Toolbar | Floating Filter Toggle Modal |
+| **Candidates Pane** | 2-Pane Split (List on left, outline editor on right) | 2-Pane Split | Vertical card stack (Drawer opens on tap) |

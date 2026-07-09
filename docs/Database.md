@@ -1,156 +1,183 @@
-# ImmiPulse - Database Schema Design
+# Database Schema Design: Yutian Immigration AI Newsroom
 
-## 1. Overview
-ImmiPulse uses a **PostgreSQL** relational database running in a Docker Compose container. To support semantic deduplication and similarity searches, the database is equipped with the **`pgvector`** extension, which stores high-dimensional dense vector embeddings.
+This document defines the PostgreSQL database schema, data models, table fields, relational integrity, indexing strategy, and data retention queries for the **Yutian Immigration AI Newsroom**.
 
 ---
 
-## 2. Table Definitions
+## 1. Database Extensions
 
-### 2.1 `users` Table
-Stores authentication and subscription tier details.
-```sql
-CREATE TABLE users (
-    id VARCHAR(50) PRIMARY KEY, -- Prefix format 'usr_' (e.g. usr_9a8b7c6d)
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    user_tier VARCHAR(20) NOT NULL DEFAULT 'basic', -- 'basic', 'premium', 'admin'
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
+The system utilizes `pgvector` for semantic cosine similarity searches. The extension must be enabled before table creation:
 
-### 2.2 `user_preferences` Table
-Stores user dashboard customization rules.
 ```sql
-CREATE TABLE user_preferences (
-    user_id VARCHAR(50) PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    preferred_jurisdictions VARCHAR(10)[] DEFAULT '{}', -- Array of jurisdiction codes (e.g., {"US", "CA"})
-    preferred_tags VARCHAR(50)[] DEFAULT '{}', -- Array of feature tags
-    digest_frequency VARCHAR(20) DEFAULT 'none', -- 'none', 'daily', 'weekly'
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### 2.3 `user_alerts` Table
-Stores custom keyword alarms registered by Premium users.
-```sql
-CREATE TABLE user_alerts (
-    id VARCHAR(50) PRIMARY KEY, -- Prefix format 'alt_'
-    user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    target_jurisdiction VARCHAR(100) NOT NULL, -- Target jurisdiction name or code
-    keyword VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### 2.4 `articles` Table
-Stores raw and enriched news articles. Embedding field uses `HALFVEC(3072)` to support fp16 dimension compression allowing HNSW vector indexing.
-```sql
-CREATE TABLE articles (
-    id VARCHAR(50) PRIMARY KEY, -- Prefix format 'art_'
-    title VARCHAR(500) NOT NULL,
-    raw_content TEXT NOT NULL,
-    summary TEXT NOT NULL,
-    publication_date TIMESTAMP WITH TIME ZONE NOT NULL, -- Authoritative publication date (used for TTL calculations)
-    source_url TEXT NOT NULL,
-    origin_jurisdiction VARCHAR(50) NOT NULL, -- Jurisdiction code (e.g. 'US', 'CA', 'DE')
-    publisher_authority INTEGER DEFAULT 3, -- 1 (Low) to 5 (Government Official)
-    embedding HALFVEC(3072) NOT NULL, -- pgvector halfvec field for dense representation
-    tags VARCHAR(50)[] DEFAULT '{}', -- Classification tags (e.g. {"Education", "Retirement"})
-    is_analysis BOOLEAN DEFAULT FALSE, -- True if this represents derivative commentary
-    parent_article_id VARCHAR(50) REFERENCES articles(id) ON DELETE SET NULL, -- References original announcement if is_analysis is True
-    alternative_sources TEXT[] DEFAULT '{}', -- List of identical coverage links merged into this event
-    tagging_confidence DOUBLE PRECISION, -- LLM tagging confidence (NULL if deterministic)
-    tagger_provider VARCHAR(50) DEFAULT 'keyword', -- 'keyword', 'llm', or 'admin-override'
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### 2.5 `jurisdictions` Table
-Stores the canonical master list of supported jurisdictions/countries.
-```sql
-CREATE TABLE jurisdictions (
-    code VARCHAR(10) PRIMARY KEY, -- Unique code (e.g. 'US', 'CA', 'GB')
-    name VARCHAR(100) UNIQUE NOT NULL, -- Full country name (e.g. 'United States', 'Canada')
-    region VARCHAR(50) NOT NULL, -- Regional group (e.g. 'Americas', 'Europe')
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### 2.6 `admin_review_queue` Table
-Tracks low-confidence articles requiring admin review before publication.
-```sql
-CREATE TABLE admin_review_queue (
-    id VARCHAR(50) PRIMARY KEY, -- Prefix format 'rev_'
-    article_id VARCHAR(50) NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
-    reason TEXT NOT NULL, -- Reason for review routing (e.g. low LLM confidence score)
-    proposed_tags VARCHAR(50)[] DEFAULT '{}', -- Suggested classification tags
-    proposed_jurisdiction VARCHAR(50), -- Suggested target jurisdiction
-    confidence DOUBLE PRECISION NOT NULL, -- LLM classifier confidence score (< 0.85)
-    status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
-    notes TEXT, -- Admin decision explanation notes
-    decided_by VARCHAR(50) REFERENCES users(id) ON DELETE SET NULL, -- Admin user ID who decided
-    decided_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### 2.7 `scraper_logs` Table
-Tracks ingestion health status and also logs custom alerts dispatched.
-```sql
-CREATE TABLE scraper_logs (
-    id SERIAL PRIMARY KEY,
-    scraper_name VARCHAR(255) NOT NULL, -- Ingestion name (or alert track ID format 'alert-sent:usr_id:art_id')
-    status VARCHAR(20) NOT NULL, -- 'success', 'failure'
-    error_message TEXT,
-    items_scraped INTEGER DEFAULT 0,
-    execution_time_seconds DOUBLE PRECISION,
-    executed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 ```
 
 ---
 
-## 3. Indexes & Operations
+## 2. Entity-Relationship Diagram (ERD)
 
-### 3.1 Cosine Similarity Search
-To find semantic duplicates in the past 1-2 months (TTL window), the ingestion engine executes a cosine similarity vector search:
-```sql
-SELECT id, title, publication_date, (embedding <=> $1) AS cosine_distance
-FROM articles
-WHERE publication_date >= NOW() - INTERVAL '60 days' -- Configurable TTL window filter
-ORDER BY cosine_distance ASC
-LIMIT 5;
-```
-*(Note: `<=>` is the pgvector operator for Cosine Distance, where `Distance = 1 - Cosine Similarity`).*
-
-### 3.2 Vector Indexing
-An HNSW (Hierarchical Navigable Small World) index is created on the `embedding` column to ensure sub-second vector queries:
-```sql
-CREATE INDEX articles_embedding_hnsw_idx ON articles 
-USING hnsw (embedding halfvec_cosine_ops);
-```
-
-### 3.3 Relational Indexes
-```sql
--- Fast preference lookups during feed fetching
-CREATE INDEX idx_user_preferences_user ON user_preferences(user_id);
-
--- Alert notifications scanning on insertions
-CREATE INDEX idx_user_alerts_user ON user_alerts(user_id);
-
--- Fast feed sorting and TTL deletion indexing
-CREATE INDEX idx_articles_pub_date ON articles(publication_date DESC);
-CREATE INDEX idx_articles_jurisdiction ON articles(origin_jurisdiction);
+```mermaid
+erDiagram
+    news_items {
+        uuid id PK
+        text title_original
+        text title_en
+        text title_zh
+        text summary_original
+        text summary_en
+        text summary_zh
+        varchar original_language
+        varchar source_name
+        text source_url
+        timestamptz published_at
+        timestamptz received_at
+        varchar_array country_tags
+        varchar_array topic_tags
+        varchar_array audience_tags
+        integer importance_score
+        integer video_score
+        integer chinese_relevance_score
+        integer evergreen_score
+        uuid parent_id FK
+        text_array keywords
+        text ai_analysis
+        boolean official_source
+        vector title_vector
+        jsonb youtube_suggestions
+        varchar workflow_version
+    }
+    
+    candidates {
+        uuid id PK
+        uuid news_item_id FK "1:1 Unique"
+        timestamptz starred_at
+        varchar custom_title
+        text custom_outline
+        text notes
+    }
+    
+    news_items ||--o| news_items : "groups duplicates (parent_id)"
+    news_items ||--o| candidates : "starred as"
 ```
 
 ---
 
-## 4. TTL Garbage Collection
-A daily cron job cleans up articles older than the configured TTL (e.g. 60 days):
+## 3. Schema DDL Statements
+
+### 3.1 news_items Table
+Stores all ingested news article metadata, including translated fields, calculated classification tags, and scoring models.
+
 ```sql
-DELETE FROM articles 
-WHERE publication_date < NOW() - INTERVAL '60 days';
+CREATE TABLE news_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Titles (Translations Matrix)
+    title_original TEXT NOT NULL,
+    title_en TEXT NOT NULL,
+    title_zh TEXT NOT NULL,
+    
+    -- Summaries (Translations Matrix)
+    summary_original TEXT NOT NULL,
+    summary_en TEXT NOT NULL,
+    summary_zh TEXT NOT NULL,
+    
+    -- Source and Metadata
+    original_language VARCHAR(10) NOT NULL,
+    source_name VARCHAR(100) NOT NULL,
+    source_url TEXT NOT NULL UNIQUE,
+    published_at TIMESTAMPTZ NOT NULL,
+    received_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Classification Tags (Arrays)
+    country_tags VARCHAR(50)[] NOT NULL DEFAULT '{}',
+    topic_tags VARCHAR(50)[] NOT NULL DEFAULT '{}',
+    audience_tags VARCHAR(50)[] NOT NULL DEFAULT '{}',
+    
+    -- Multi-Dimensional Grading Scores (0 - 100)
+    importance_score INTEGER NOT NULL CHECK (importance_score BETWEEN 0 AND 100),
+    video_score INTEGER NOT NULL CHECK (video_score BETWEEN 0 AND 100),
+    chinese_relevance_score INTEGER NOT NULL CHECK (chinese_relevance_score BETWEEN 0 AND 100),
+    evergreen_score INTEGER NOT NULL CHECK (evergreen_score BETWEEN 0 AND 100),
+    
+    -- Duplicate Group (Self-Referencing ForeignKey)
+    parent_id UUID REFERENCES news_items(id) ON DELETE SET NULL,
+    
+    -- AI Generated Insights
+    keywords TEXT[] NOT NULL DEFAULT '{}',
+    ai_analysis TEXT,
+    official_source BOOLEAN NOT NULL DEFAULT FALSE,
+    youtube_suggestions JSONB NOT NULL DEFAULT '{}'::jsonb, -- {"titles": ["Title 1", "Title 2"], "thumbnail_prompt": "Prompt"}
+    
+    -- Vector Embeddings for level 2 de-duplication (384 dimensions for all-MiniLM-L6-v2)
+    title_vector VECTOR(384),
+    
+    -- Version Audit
+    workflow_version VARCHAR(20) NOT NULL DEFAULT '1.0.0'
+);
 ```
-*(Note: CASCADE deletes on any child records or linked records should be managed to prevent database inconsistency).*
+
+### 3.2 candidates Table
+Stores custom notes, video outlines, and alternative titles for news items selected by the creator for production.
+
+```sql
+CREATE TABLE candidates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    news_item_id UUID NOT NULL UNIQUE REFERENCES news_items(id) ON DELETE CASCADE,
+    starred_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    custom_title VARCHAR(200),
+    custom_outline TEXT,
+    notes TEXT
+);
+```
+
+---
+
+## 4. Indexing Strategy
+
+To support fast client-side dashboard queries, filtering by tags, text searches, and semantic vector comparisons, the following indexes are constructed:
+
+```sql
+-- 1. B-tree index for filtering out duplicate reports in the main feed
+CREATE INDEX idx_news_items_parent_id ON news_items (parent_id) WHERE parent_id IS NULL;
+
+-- 2. B-tree index for sorting results by publication date and score rankings
+CREATE INDEX idx_news_items_published_at ON news_items (published_at DESC);
+CREATE INDEX idx_news_items_scores ON news_items (video_score DESC, chinese_relevance_score DESC);
+
+-- 3. GIN index for tag arrays matching fast dashboard multi-select filters
+CREATE INDEX idx_news_items_country_tags ON news_items USING GIN (country_tags);
+CREATE INDEX idx_news_items_topic_tags ON news_items USING GIN (topic_tags);
+CREATE INDEX idx_news_items_audience_tags ON news_items USING GIN (audience_tags);
+
+-- 4. HNSW Vector Cosine Similarity index for Level 2 semantic duplicate checks
+-- Requires pgvector 0.5.0+. Uses cosine distance search parameters.
+CREATE INDEX idx_news_items_title_vector ON news_items USING hnsw (title_vector vector_cosine_ops);
+```
+
+---
+
+## 5. Data Retention & Purge Logic
+
+To maintain a lightweight database and respect copyright metadata guidelines, a cron-based purge script runs daily to delete articles older than 90 days. 
+
+To preserve candidate relationships, the deletion excludes:
+- Starred items present in the `candidates` table.
+- Primary parents of duplicate groups that have a child starred in the `candidates` table.
+
+```sql
+DELETE FROM news_items
+WHERE published_at < NOW() - INTERVAL '90 days'
+  -- Exclude starred news items
+  AND id NOT IN (
+      SELECT news_item_id 
+      FROM candidates
+  )
+  -- Exclude parent items whose children are candidates
+  AND id NOT IN (
+      SELECT DISTINCT parent_id 
+      FROM news_items 
+      WHERE parent_id IS NOT NULL 
+        AND id IN (SELECT news_item_id FROM candidates)
+  );
+```

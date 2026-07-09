@@ -1,0 +1,28 @@
+[project]
+name = "immipulse-backend"
+version = "0.1.0"
+description = "FastAPI backend for the ImmiPulse immigration AI newsroom"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]",
+    "uvicorn[standard]",
+    "sqlalchemy[asyncio]",
+    "asyncpg",
+    "pgvector",
+    "pydantic-settings",
+    "python-multipart",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "httpx",
+    "aiosqlite",
+    "factory-boy",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

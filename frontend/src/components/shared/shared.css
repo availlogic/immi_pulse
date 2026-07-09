@@ -1,0 +1,116 @@
+/* Shared UI CSS */
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.badge-default {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-muted);
+}
+
+.badge-country {
+  background-color: var(--color-blue-light);
+  color: hsl(205, 90%, 25%);
+}
+
+.badge-topic {
+  background-color: #f1f3f5;
+  color: var(--color-text-main);
+}
+
+.badge-score-green {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.badge-score-orange {
+  background-color: var(--color-amber-soft);
+  color: var(--color-warning);
+}
+
+.badge-score-red {
+  background-color: var(--color-warning-bg);
+  color: var(--color-text-muted);
+}
+
+/* Toast */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-card);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background-color: var(--color-bg-surface);
+  min-width: 300px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.toast-success { border-left: 4px solid var(--color-success); }
+.toast-error { border-left: 4px solid var(--color-warning); }
+.toast-info { border-left: 4px solid var(--color-blue-primary); }
+
+.toast-icon {
+  flex-shrink: 0;
+}
+.toast-success .toast-icon { color: var(--color-success); }
+.toast-error .toast-icon { color: var(--color-warning); }
+.toast-info .toast-icon { color: var(--color-blue-primary); }
+
+.toast-message {
+  flex: 1;
+  font-size: 0.95rem;
+  color: var(--color-text-main);
+}
+
+.toast-dismiss {
+  font-size: 1.2rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xxl) var(--spacing-xl);
+  text-align: center;
+  height: 100%;
+}
+
+.empty-icon-wrapper {
+  background-color: var(--color-amber-soft);
+  padding: var(--spacing-xl);
+  border-radius: 50%;
+  margin-bottom: var(--spacing-lg);
+}
+
+.empty-icon {
+  color: var(--color-amber-accent);
+}
+
+.empty-title {
+  color: var(--color-text-main);
+  margin-bottom: var(--spacing-sm);
+}
+
+.empty-message {
+  color: var(--color-text-muted);
+  max-width: 400px;
+}

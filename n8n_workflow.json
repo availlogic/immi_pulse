@@ -1,0 +1,359 @@
+{
+  "name": "ImmiPulse News Ingestion & AI Enrichment",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "interval": 4
+            }
+          ]
+        }
+      },
+      "id": "e1f13b65-65fb-4299-8d14-b69519391ab1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [ 0, 200 ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.google.com/alerts/feeds/YOUR_GOOGLE_ALERT_ID"
+      },
+      "id": "b3e025d5-86f7-4dc4-b772-df759a2f26ea",
+      "name": "RSS Feed Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [ 200, 200 ],
+      "notesInFlow": true,
+      "notes": "Replace with your RSS URL"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id FROM news_items WHERE source_url = $1 LIMIT 1;",
+        "additionalFields": {
+          "queryParameters": "={{ $json.link }}"
+        }
+      },
+      "id": "49afc2b7-1c62-4d22-b5b6-758c0678dcf4",
+      "name": "Level 1 Dup Check",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [ 400, 200 ],
+      "credentials": {
+        "postgres": {
+          "id": "immipulse-pg",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "e0e13204-5f43-4e63-b1d6-419b48c3b4a2",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "0676451e-6db5-4e78-8386-3ad51061fbb9",
+      "name": "Is Duplicate (URL)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 3.2,
+      "position": [ 600, 200 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://tei-embeddings:80/embed",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "inputs",
+              "value": "={{ $('RSS Feed Read').item.json.title }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a57628af-48a5-48b4-934c-6a4a2fc92d9d",
+      "name": "TEI Generate Embeddings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ 800, 300 ],
+      "notesInFlow": true,
+      "notes": "Calls local TEI container"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, title_vector <-> $1::vector AS distance FROM news_items ORDER BY title_vector <-> $1::vector LIMIT 1;",
+        "additionalFields": {
+          "queryParameters": "={{ JSON.stringify($json) }}"
+        }
+      },
+      "id": "55c4d3bc-30d8-4f27-becc-82f534431e67",
+      "name": "Level 2 Semantic Check",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [ 1000, 300 ],
+      "credentials": {
+        "postgres": {
+          "id": "immipulse-pg",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "semantic_dist",
+              "leftValue": "={{ $json.distance }}",
+              "rightValue": 0.12,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "4004e0e5-7940-410a-85b4-d54e4c25d804",
+      "name": "Is Semantic Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 3.2,
+      "position": [ 1200, 300 ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO news_items (title_original, title_en, title_zh, summary_original, summary_en, summary_zh, original_language, source_name, source_url, published_at, parent_id, importance_score, video_score, chinese_relevance_score, evergreen_score) VALUES ($1, 'duplicate', 'duplicate', 'duplicate', 'duplicate', 'duplicate', 'en', 'Google Alerts', $2, $3, $4, 0, 0, 0, 0);",
+        "additionalFields": {
+          "queryParameters": "={{ $('RSS Feed Read').item.json.title }},{{ $('RSS Feed Read').item.json.link }},{{ $('RSS Feed Read').item.json.pubDate }},{{ $json.id }}"
+        }
+      },
+      "id": "duplicate_insert",
+      "name": "Insert as Child",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [ 1400, 200 ],
+      "credentials": {
+        "postgres": {
+          "id": "immipulse-pg",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.minimax.chat/v1/text/chatcompletion_pro?GroupId=YOUR_GROUP_ID",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.MINIMAX_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "abab6.5-chat"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [ { \"sender_type\": \"USER\", \"sender_name\": \"User\", \"text\": \"You are an expert AI immigration news analyst. Analyze the following news item and output JSON strictly conforming to the requested format. News Title: \" + $('RSS Feed Read').item.json.title + \" News Content: \" + $('RSS Feed Read').item.json.contentSnippet + \"\\n\\nPlease translate the title and summary to EN and ZH, provide tags (country_tags, topic_tags, audience_tags), multi-dimensional scores (0-100: importance_score, video_score, chinese_relevance_score, evergreen_score), extract keywords, write an ai_analysis, generate youtube_suggestions, and determine official_source. Return ONLY valid JSON.\" } ] }}"
+            },
+            {
+              "name": "reply_constraints",
+              "value": "={{ { \"sender_type\": \"BOT\", \"sender_name\": \"MM\" } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "minimax_enrichment",
+      "name": "MiniMax LLM Enrichment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [ 1400, 400 ],
+      "notesInFlow": true,
+      "notes": "Calls MiniMax AI to translate and score"
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiResponseStr = $input.all()[0].json.choices[0].messages[0].text;\n// Clean up potential markdown blocks if the AI returned them\nconst cleanedStr = aiResponseStr.replace(/```json/g, '').replace(/```/g, '').trim();\nconst parsed = JSON.parse(cleanedStr);\n\nreturn {\n  ai_data: parsed,\n  vector: $('TEI Generate Embeddings').item.json,\n  rss: $('RSS Feed Read').item.json\n};"
+      },
+      "id": "parse_ai",
+      "name": "Parse AI Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [ 1600, 400 ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO news_items (title_original, title_en, title_zh, summary_original, summary_en, summary_zh, original_language, source_name, source_url, published_at, country_tags, topic_tags, audience_tags, importance_score, video_score, chinese_relevance_score, evergreen_score, keywords, ai_analysis, official_source, youtube_suggestions, title_vector) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22);",
+        "additionalFields": {
+          "queryParameters": "={{ $json.rss.title }},{{ $json.ai_data.title_en }},{{ $json.ai_data.title_zh }},{{ $json.rss.contentSnippet }},{{ $json.ai_data.summary_en }},{{ $json.ai_data.summary_zh }},'en','Google Alerts',{{ $json.rss.link }},{{ $json.rss.pubDate }},{{ JSON.stringify($json.ai_data.country_tags || []) }},{{ JSON.stringify($json.ai_data.topic_tags || []) }},{{ JSON.stringify($json.ai_data.audience_tags || []) }},{{ $json.ai_data.importance_score || 0 }},{{ $json.ai_data.video_score || 0 }},{{ $json.ai_data.chinese_relevance_score || 0 }},{{ $json.ai_data.evergreen_score || 0 }},{{ JSON.stringify($json.ai_data.keywords || []) }},{{ $json.ai_data.ai_analysis || '' }},{{ $json.ai_data.official_source ? 'true' : 'false' }},{{ JSON.stringify($json.ai_data.youtube_suggestions || {}) }},{{ JSON.stringify($json.vector) }}"
+        }
+      },
+      "id": "insert_new_item",
+      "name": "Insert Primary Item",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [ 1800, 400 ],
+      "credentials": {
+        "postgres": {
+          "id": "immipulse-pg",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS Feed Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Feed Read": {
+      "main": [
+        [
+          {
+            "node": "Level 1 Dup Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Level 1 Dup Check": {
+      "main": [
+        [
+          {
+            "node": "Is Duplicate (URL)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Duplicate (URL)?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "TEI Generate Embeddings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TEI Generate Embeddings": {
+      "main": [
+        [
+          {
+            "node": "Level 2 Semantic Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Level 2 Semantic Check": {
+      "main": [
+        [
+          {
+            "node": "Is Semantic Duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Semantic Duplicate?": {
+      "main": [
+        [
+          {
+            "node": "Insert as Child",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MiniMax LLM Enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MiniMax LLM Enrichment": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Output": {
+      "main": [
+        [
+          {
+            "node": "Insert Primary Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -1,76 +1,109 @@
-# ImmiPulse - Visual Guidelines
+# Visual Guidelines: Yutian Immigration AI Newsroom
 
-## 1. Design Philosophy & Visual Tone
-ImmiPulse focuses on making immigration and global mobility news accessible, transparent, and trustworthy. The visual tone must be:
-- **Bright, Vivid, and Attractive**: Using a bright color palette to evoke positivity, hope, and new beginnings associated with migration.
-- **Clean and Ad-Free**: Promoting clarity and high readability with generous spacing, avoiding visual clutter.
-- **Professional and Authoritative**: High-contrast typography and clear layout hierarchies to build user confidence in our verified source data.
+This document defines the design philosophy, typography, layout systems, component specs, and accessibility rules for the Yutian Immigration AI Newsroom (ImmiPulse). 
 
 ---
 
-## 2. Color System (Light-Mode First)
+## 1. Design Philosophy & Visual Tone
 
-The system does not support dark-mode. It enforces a high-vibrancy light theme:
+Immigration is a journey toward new opportunities, planning for the future, and chasing a bright, hopeful horizon. Thus, the visual tone is explicitly **optimistic, bright, warm, and professional** (avoiding dark modes or sterile greys).
 
-| Color Token | Hex / Value | Description |
-| :--- | :--- | :--- |
-| **Primary (Brand Blue)** | `#1E40AF` / HSL(220, 70%, 40%) | Trust, stability, and global travel. Used for primary buttons, active states, and logos. |
-| **Primary Hover** | `#1D4ED8` / HSL(220, 75%, 48%) | Slightly brighter blue for hover triggers. |
-| **Accent (Vivid Orange)** | `#EA580C` / HSL(20, 85%, 48%) | Energy, alerts, and calls-to-action. Used for alarms, warnings, and notifications. |
-| **Background Main** | `#F9FAFB` / HSL(210, 20%, 98%) | Soft neutral light grey to reduce eye strain. |
-| **Background Card** | `#FFFFFF` / HSL(0, 0%, 100%) | Crisp white for article cards and modal layers. |
-| **Text Primary** | `#111827` / HSL(220, 40%, 11%) | High-contrast dark charcoal for body copy and headings. |
-| **Text Secondary** | `#4B5563` / HSL(215, 15%, 35%) | Slate grey for summaries, dates, and labels. |
-| **Border / Divider** | `#E5E7EB` / HSL(220, 15%, 92%) | Subtle light grey for containment borders and grids. |
-| **Semantic Success** | `#10B981` / HSL(160, 84%, 39%) | Green for successful saves, verified ticks, and status. |
-| **Semantic Error** | `#EF4444` / HSL(0, 84%, 60%) | Red for delete triggers, failed inputs, and alerts. |
+- **Visual Theme:** Light-mode-first, clean, warm, and sunny.
+- **Brand Personality:** Trustworthy (professional editorial feel), Hopeful (sunny and warm), and Efficient (uncluttered layouts, focus on content).
+- **Core Principles:**
+  - *Horizons:* Plentiful white space, clean grids, and soft margins.
+  - *Optimism:* Warm sunlight highlights, gold/amber accents, and sky blue bases.
+  - *Clarity:* High text-to-background contrast, clean sans-serif typography.
+
+---
+
+## 2. Color System (Sunny Horizon Palette)
+
+A cohesive HSL-based color palette is established to maintain consistency.
+
+| Color Token | Hue/Sat/Light | CSS Variable | Purpose |
+| :--- | :--- | :--- | :--- |
+| **Sky Blue (Primary)** | `hsl(205, 85%, 45%)` | `--color-blue-primary` | Main branding, primary buttons, active states, global headers. Represents horizons and pathways. |
+| **Sky Blue Light** | `hsl(205, 90%, 95%)` | `--color-blue-light` | Hover states, active background fills, selected sidebar items. |
+| **Sunrise Amber (Accent)** | `hsl(38, 95%, 52%)` | `--color-amber-accent` | Highlights, starred candidates, top recommendation flags, custom notes edit states. Represents warmth and future success. |
+| **Amber Soft** | `hsl(38, 100%, 96%)` | `--color-amber-soft` | Background highlighting, notice boxes, custom drawer panels. |
+| **Warm Sand (Bg Base)** | `hsl(35, 20%, 98%)` | `--color-bg-base` | Main application backdrop. A warm, creamy off-white that reduces eye strain. |
+| **Pure White** | `hsl(0, 0%, 100%)` | `--color-bg-surface` | Card surfaces, detail drawer, sidebar, and container backdrops. |
+| **Charcoal Gray (Text)** | `hsl(210, 24%, 16%)` | `--color-text-main` | Primary headings, body copy, and navigation labels. |
+| **Slate Gray (Subtext)** | `hsl(210, 16%, 46%)` | `--color-text-muted` | Captions, metadata, feed source names, and dates. |
+| **Sage Green (Success)** | `hsl(142, 60%, 40%)` | `--color-success` | High video scores (>=70), successful note sync status, candidate confirm indicators. |
+| **Warm Peach (Warning)** | `hsl(20, 85%, 55%)` | `--color-warning` | Low video/relevance scores (<50), warnings, remove actions. |
+
+### Contrast Rules
+- Text on `--color-bg-surface` must use `--color-text-main` (Contrast Ratio > 7:1, exceeds WCAG AAA).
+- Primary white text on `--color-blue-primary` buttons must satisfy WCAG AA (Contrast Ratio > 4.5:1).
 
 ---
 
 ## 3. Typography
-- **Headings Font**: **Outfit** (Modern, clean geometric sans-serif for UI titles and headers).
-- **Body & Controls Font**: **Inter** (Highly legible sans-serif optimized for reading paragraphs on screen sizes).
 
-### Typography Scale
-- `h1` (Page Title): `2.25rem` / `36px` - Bold, Line-height: `1.2`
-- `h2` (Section Header): `1.5rem` / `24px` - Semi-Bold, Line-height: `1.3`
-- `h3` (Component Header): `1.25rem` / `20px` - Medium, Line-height: `1.4`
-- `body` (Article Snippet): `1.0rem` / `16px` - Regular, Line-height: `1.6`
-- `caption` (Dates / Tags): `0.875rem` / `14px` - Medium, Line-height: `1.5`
+The layout uses **Outfit** for headings (modern, friendly, geometric) and **Inter** for body text and numbers (excellent legibility and weight support).
 
----
+- **Headings Font:** `Outfit, system-ui, sans-serif`
+- **Body Font:** `Inter, system-ui, sans-serif`
 
-## 4. Spacing & Layout
-- **Spacing Scale**: Base-8 grid system (`8px`, `16px`, `24px`, `32px`, `48px`, `64px`).
-- **Border Radius**:
-  - `4px` for checkboxes, mini-badges.
-  - `8px` for buttons, input fields.
-  - `16px` for cards, modals, and dropdown overlays.
-- **Grids**:
-  - **Desktop**: 12-column grid layout, `1200px` max-width container, `24px` gutters.
-  - **Mobile**: Single-column vertical scroll, `16px` gutters.
+| Token Name | Weight | Size | Line Height | CSS Mapping |
+| :--- | :--- | :--- | :--- | :--- |
+| **Heading 1 (H1)** | Bold (700) | `1.75rem` (28px) | `1.2` | Page Titles (e.g., Editorial Feed) |
+| **Heading 2 (H2)** | SemiBold (600) | `1.25rem` (20px) | `1.3` | Section Headers (e.g., Details, Outline) |
+| **Heading 3 (H3)** | Medium (500) | `1.1rem` (17px) | `1.4` | Story Card Title |
+| **Body (Default)** | Regular (400) | `0.95rem` (15px) | `1.5` | Summaries, AI analysis, Notes editor |
+| **Label / Button** | SemiBold (600) | `0.85rem` (13.5px)| `1.2` | Filter Tags, Buttons, Tab labels |
+| **Caption / Meta** | Regular (400) | `0.8rem` (12.8px) | `1.4` | Published times, sources, duplicate count |
 
 ---
 
-## 5. UI Component Specifications
+## 4. Spacing & Layout Principles
+
+### 4.1 Spacing Scale
+A strict 8px grid system is used to ensure aligned components:
+- `4px` (xs), `8px` (sm), `16px` (md), `24px` (lg), `32px` (xl), `48px` (xxl).
+
+### 4.2 Grid & Alignment
+- **Global Page Margins:** 24px padding on desktop, 16px on mobile.
+- **Card Grids:** CSS Grid with `gap: 20px`.
+- **Card Border Radius:** 12px for modern, soft contours.
+- **Drawer Border Radius:** 16px (top-left and bottom-left on desktop drawer; top-left and top-right on mobile bottom-sheet).
+
+---
+
+## 5. Component Patterns & Styling
 
 ### 5.1 Buttons
-- **Primary Button**: Solid Brand Blue with white text. Transition: `background-color 0.2s ease`.
-- **Secondary Button**: Outlined border (Brand Blue) with Blue text. White background.
-- **Warning Button**: Solid Semantic Error Red with white text. Used for alert deletion.
+- **Primary Button (e.g. "Copy Outline"):** Sky Blue fill (`--color-blue-primary`), white text. Focus outline: 2px Sky Blue light ring.
+- **Secondary Button (e.g. "Filter reset"):** Thin Sky Blue border, Sky Blue text, `--color-bg-surface` background.
+- **Icon Button (e.g. Star Candidate ⭐):**
+  - Unstarred: Slate grey outline.
+  - Starred: Golden-yellow fill (`--color-amber-accent`) with a mild pulse animation when triggered.
 
-### 5.2 Badges & Tags
-- **Jurisdiction Badge**: Light blue background (`#EFF6FF`), dark blue text (`#1E40AF`). Bold, uppercase.
-- **Feature Tag**: Light grey background (`#F3F4F6`), slate text (`#374151`). Semi-bold, small.
+### 5.2 Cards
+- Outlined with 1px border (`hsl(210, 20%, 90%)`) and no shadow when static.
+- On hover: Border color fades, subtle warm shadow is applied (`box-shadow: 0 4px 12px rgba(245, 158, 11, 0.08)`), and card lifts up by 2px (`transform: translateY(-2px)`).
 
-### 5.3 Cards
-- White background, thin grey border (`1px solid #E5E7EB`).
-- Hover state: Slight raise shadow (`box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05)`) and micro-translation up by `2px`.
+### 5.3 Badges
+- **Country Badge:** Light Sky Blue background (`--color-blue-light`), dark blue text (`hsl(205, 90%, 25%)`).
+- **Topic/Audience Badge:** Light neutral grey-cream background, dark slate text.
+- **Metric Badges (VS / CR):** Rounded pills.
+  - Green Pill (Score 70-100): Sage Green background (`hsl(142, 60%, 94%)`), green text.
+  - Orange Pill (Score 50-69): Soft Amber background (`--color-amber-soft`), orange text.
+  - Red/Grey Pill (Score <50): Warm Peach background (`hsl(20, 85%, 96%)`), warm grey text.
 
 ---
 
-## 6. Accessibility & Usability (WCAG AA)
-- **Contrast**: Text elements must maintain a minimum contrast ratio of `4.5:1` against their backgrounds.
-- **Touch Targets**: All interactive elements (buttons, checks, navigation links) must meet a minimum size of `44px x 44px`.
-- **Focus States**: Focused interactive components must show a visible, bright focus outline (`2px solid #EA580C`) to assist keyboard navigation.
-- **Screen Readers**: All icons (e.g. settings gears, trash cans) must be accompanied by appropriate `aria-label` tags.
+## 6. Accessibility
+
+To guarantee a professional-grade user experience, the interface adheres to the following accessibility requirements:
+
+- **WCAG AA Compliance:** Text and interactive indicators must meet or exceed WCAG AA guidelines for color contrast.
+- **Focus Indicators:** Interactive components (buttons, links, text areas) must display a clear, high-contrast, rounded outline ring (`2px solid var(--color-blue-primary)`) when focused via keyboard.
+- **Touch Target Size:** Interactive elements (filter pills, navigation tabs, buttons, close controls) must occupy a minimum dimension of **48px x 48px** to allow ease of tapping on mobile/tablet devices.
+- **Keyboard Shortcuts:**
+  - `Esc`: Instantly close detail drawer or floating overlays.
+  - `Tab`: Sequential, logical focus navigation (Sidebar -> Main Grid -> Cards -> Drawer).
+- **Screen Reader Fills:**
+  - Interactive icons (like the star button or detail drawer close) must contain descriptive `aria-label` tags (e.g. `aria-label="Star this news story as a video candidate"`).
