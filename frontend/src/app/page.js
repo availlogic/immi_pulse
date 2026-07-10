@@ -45,6 +45,10 @@ export default function Dashboard() {
     setParams(prev => ({ ...prev, sort_by, page: 1 }));
   };
 
+  const handleSearch = (query) => {
+    setParams(prev => ({ ...prev, search: query, page: 1 }));
+  };
+
   const handleStarToggle = async (newsId, isStarred) => {
     let success = false;
     if (isStarred) {
@@ -68,7 +72,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <Header title="Editorial Feed" />
+      <Header title="Editorial Feed" searchValue={params.search} onSearch={handleSearch} />
       
       <div className="app-content">
         <div style={{ display: 'flex', gap: '24px', flexDirection: 'column' }}>
