@@ -70,11 +70,11 @@ This document specifies the UI and feature-level functional test cases to verify
 * **Preconditions**:
   * Database contains 2 news items with relevance >= 60 and 3 items with relevance < 60.
 * **Steps**:
-  1. Open the dashboard (`/`). Verify only 2 cards are shown by default.
-  2. Toggle the "Show Low Relevance" switch to "On".
+  1. Open the dashboard (`/`). Verify all 5 cards are shown by default.
+  2. Toggle the "Show Low Relevance" switch to "Off".
 * **Expected Result**:
-  * Feed updates instantly (<200ms) to display all 5 news items.
-  * The query parameter `show_low_relevance=true` is sent to the backend.
+  * Feed updates instantly (<200ms) to display only 2 news items (relevance >= 60).
+  * The query parameter `show_low_relevance` is NOT sent to the backend (or sent as false).
 * **Priority**: High
 * **Traceability**: [PRD: Section 13](file:///Users/victorxu/projects/immi_pulse/docs/PRD.md#L170), [Screen-Specs: 2.3.2](file:///Users/victorxu/projects/immi_pulse/docs/Screen-Specs.md#L53)
 

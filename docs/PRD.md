@@ -169,7 +169,7 @@ The downstream audience consuming the resulting video content includes:
 
 ## 13. Business & Processing Rules
 
-* **Chinese Relevance Threshold:** News items with a `chinese_relevance_score` lower than 60 are automatically hidden from the main dashboard feed unless the user explicitly checks the "Show Low Relevance" toggle.
+* **Chinese Relevance Threshold:** News items with a `chinese_relevance_score` lower than 60 are shown in the main dashboard feed by default, but the user can explicitly uncheck the "Show Low Relevance" toggle to hide them.
 * **Top Recommendation Criteria:** A story card is flagged as "High Recommendation" if its `video_score` is >= 70 and `chinese_relevance_score` is >= 70.
 * **De-duplication Scope:** De-duplication must check articles within a rolling 7-day window. Items outside this window are considered distinct news cycles.
 * **Data Retention Policy:** The PostgreSQL db runs an automated daily cron job to delete records where `published_at` is older than `NEWS_RETENTION_DAYS` (default: 90).

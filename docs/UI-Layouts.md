@@ -30,7 +30,7 @@ Below is an ASCII layout of the main dashboard on desktop, showing the Sidebar, 
 | (⭐) Candidates      |                                                                  |
 |                      | Topics: [Work Visa] [PR] [Golden Visa]                           |
 |                      |                                                                  |
-| [Settings]           | Show Low Relevance: [o] Off (Scores < 60 hidden)                 |
+| [Settings]           | Show Low Relevance: [x] On (Scores < 60 shown)                  |
 |                      | Sort: [Newest | Video Score | Chinese Relevance]                 |
 |                      +------------------------------------------------------------------+
 |                      | NEWS ITEMS FEED                                | DETAIL DRAWER    |

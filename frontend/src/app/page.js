@@ -19,7 +19,7 @@ export default function Dashboard() {
   const [params, setParams] = useState({
     page: 1,
     limit: 50,
-    show_low_relevance: false,
+    show_low_relevance: true,
     sort_by: 'published_at',
     countries: [],
     topics: [],
