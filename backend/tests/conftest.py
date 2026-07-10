@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.auth import require_auth
 from app.database import Base, get_db
 from app.main import app
-from app.models import Candidate, NewsItem
+from app.models import Candidate, NewsItem, RSSSource
 
 TEST_TOKEN = "test-secret-token"
 
@@ -148,3 +148,22 @@ async def create_candidate(
     await session.commit()
     await session.refresh(candidate)
     return candidate
+
+
+async def create_rss_source(session: AsyncSession, **overrides: Any) -> RSSSource:
+    """Factory function to create an RSSSource with sensible defaults."""
+    defaults = {
+        "id": uuid.uuid4(),
+        "name": "Test RSS Feed",
+        "url": f"https://example.com/feed-{uuid.uuid4().hex[:8]}.xml",
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
+    }
+    defaults.update(overrides)
+    source = RSSSource(**defaults)
+    session.add(source)
+    await session.commit()
+    await session.refresh(source)
+    return source
+

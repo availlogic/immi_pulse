@@ -19,6 +19,15 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 ```mermaid
 erDiagram
+    rss_sources {
+        uuid id PK
+        varchar name
+        text url
+        boolean is_active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
     news_items {
         uuid id PK
         text title_original
@@ -59,6 +68,7 @@ erDiagram
     
     news_items ||--o| news_items : "groups duplicates (parent_id)"
     news_items ||--o| candidates : "starred as"
+    rss_sources ||--o{ news_items : "feeds into (logically)"
 ```
 
 ---
@@ -130,6 +140,24 @@ CREATE TABLE candidates (
     notes TEXT
 );
 ```
+
+### 3.3 rss_sources Table
+Stores metadata and target URLs for external RSS feed sources. n8n polls active items from this table to run sub-workflow ingestions.
+
+```sql
+CREATE TABLE rss_sources (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL,
+    url TEXT NOT NULL UNIQUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index on is_active for faster lookup in n8n poll master
+CREATE INDEX idx_rss_sources_is_active ON rss_sources (is_active) WHERE is_active = TRUE;
+```
+
 
 ---
 

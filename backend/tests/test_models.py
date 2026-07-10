@@ -7,8 +7,8 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Candidate, NewsItem
-from tests.conftest import create_candidate, create_news_item
+from app.models import Candidate, NewsItem, RSSSource
+from tests.conftest import create_candidate, create_news_item, create_rss_source
 
 
 class TestNewsItemModel:
@@ -57,3 +57,30 @@ class TestCandidateModel:
         found = result.scalar_one()
         assert found.news_item_id == item.id
         assert found.starred_at is not None
+
+
+class TestRSSSourceModel:
+    """Tests for RSSSource ORM model."""
+
+    async def test_rss_source_creation(self, session: AsyncSession):
+        """RSSSource can be created and persisted."""
+        source = await create_rss_source(session, name="Immigration Alerts", url="https://example.com/immigration.xml")
+        result = await session.execute(
+            select(RSSSource).where(RSSSource.id == source.id)
+        )
+        found = result.scalar_one()
+        assert found.name == "Immigration Alerts"
+        assert found.url == "https://example.com/immigration.xml"
+        assert found.is_active is True
+        assert found.created_at is not None
+        assert found.updated_at is not None
+
+    async def test_rss_source_unique_url(self, session: AsyncSession):
+        """RSSSource URLs must be unique."""
+        await create_rss_source(session, url="https://example.com/shared.xml")
+        
+        # In SQLite, unique constraints raise SQLAlchemy/DBAPI error on commit
+        import sqlalchemy.exc
+        with pytest.raises(sqlalchemy.exc.IntegrityError):
+            await create_rss_source(session, url="https://example.com/shared.xml")
+
