@@ -7,18 +7,18 @@
           "interval": [
             {
               "field": "hours",
-              "value": 4
+              "hoursInterval": 4
             }
           ]
         }
       },
-      "id": "e2f073fa-850d-40c2-9e90-c26685f4039f",
+      "id": "1b983bef-8e79-4e59-922a-0d81c82eca18",
       "name": "Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        380,
-        240
+        0,
+        0
       ]
     },
     {
@@ -27,13 +27,13 @@
         "query": "SELECT id, name, url FROM rss_sources WHERE is_active = true;",
         "options": {}
       },
-      "id": "f516a8fa-71f0-46eb-b70d-c011e4bf51a2",
+      "id": "feba7d89-0cf6-4b40-8114-443f4a1ed79b",
       "name": "Get Active Sources",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        600,
-        240
+        224,
+        0
       ],
       "credentials": {
         "postgres": {
@@ -44,21 +44,36 @@
     },
     {
       "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "YOUR_SUB_WORKFLOW_ID",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/YOUR_SUB_WORKFLOW_ID",
+          "cachedResultName": "ImmiPulse RSS Single Processor"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            ""
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
         "mode": "each",
-        "workflowId": "YOUR_SUB_WORKFLOW_ID",
         "options": {
-          "waitForSubworkflow": false
+          "waitForSubWorkflow": false
         }
       },
-      "id": "c62ef4a5-3a0c-4fa2-938b-d516ca238a0f",
-      "name": "Execute Sub-workflow",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
+      "typeVersion": 1.3,
       "position": [
-        820,
-        240
+        448,
+        0
       ],
-      "onError": "continueRegularOutput"
+      "id": "22fbd8e0-8d1e-42ef-a921-9b3297a8363e",
+      "name": "Call 'My Sub-Workflow 1'"
     }
   ],
   "pinData": {},
@@ -78,7 +93,7 @@
       "main": [
         [
           {
-            "node": "Execute Sub-workflow",
+            "node": "Call 'My Sub-Workflow 1'",
             "type": "main",
             "index": 0
           }
@@ -89,13 +104,15 @@
   "active": false,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "availableInMCP": false
   },
   "versionId": "YOUR_VERSION_ID",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "YOUR_INSTANCE_ID"
   },
+  "nodeGroups": [],
   "id": "YOUR_MASTER_WORKFLOW_ID",
   "tags": []
 }

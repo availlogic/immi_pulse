@@ -2,28 +2,17 @@
   "name": "ImmiPulse RSS Single Processor",
   "nodes": [
     {
-      "parameters": {},
-      "id": "e2f073fa-850d-40c2-9e90-c26685f4039f",
-      "name": "Workflow Trigger",
-      "type": "n8n-nodes-base.workflowTrigger",
-      "typeVersion": 1,
-      "position": [
-        1216,
-        1072
-      ]
-    },
-    {
       "parameters": {
         "url": "={{ $json.url }}",
         "options": {}
       },
-      "id": "69262b6c-2523-435e-89a3-0e3f9b54f1ae",
+      "id": "c089cc6f-c329-463a-bf84-12f861d085a2",
       "name": "RSS Feed Read",
       "type": "n8n-nodes-base.rssFeedRead",
       "typeVersion": 1,
       "position": [
-        1424,
-        1072
+        2096,
+        1344
       ],
       "notesInFlow": true,
       "notes": "Reads from the dynamic URL passed by the Master workflow"
@@ -36,13 +25,13 @@
           "queryReplacement": "={{ [$json.link, $json.title || '', $json.contentSnippet || '', $json.pubDate || '', $json.id || ''] }}"
         }
       },
-      "id": "a7dd73ea-ed66-4ad7-8fdc-c3317106fdbb",
+      "id": "90db404e-56cf-463f-9533-e5099996f88e",
       "name": "Level 1 Dup Check",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        1616,
-        1072
+        2288,
+        1344
       ],
       "credentials": {
         "postgres": {
@@ -78,13 +67,13 @@
         },
         "options": {}
       },
-      "id": "78dbfe89-aa78-4bd9-a211-522859b9217c",
+      "id": "2f3a4793-0a6d-4e62-abbe-9502044391f7",
       "name": "Is Duplicate (URL)?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1824,
-        1072
+        2496,
+        1344
       ]
     },
     {
@@ -102,13 +91,13 @@
         },
         "options": {}
       },
-      "id": "21453124-a9b8-47b5-85df-b59dfaad3aca",
+      "id": "a07dae34-c223-439c-8967-0d1c3d435213",
       "name": "TEI Generate Embeddings",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1984,
-        1184
+        2656,
+        1456
       ],
       "notesInFlow": true,
       "notes": "Calls local TEI container"
@@ -121,13 +110,13 @@
           "queryReplacement": "={{ [\n  JSON.stringify($json.data), \n  $json.link, \n  $json.title, \n  $json.contentSnippet || '', \n  $json.pubDate || '', \n  $json.id, \n  JSON.stringify($json.data)\n] }}"
         }
       },
-      "id": "2dbcc176-e3ba-49e5-bbca-a938efa27369",
+      "id": "59e70ccf-7b5b-4ab2-a758-4e10daff0acf",
       "name": "Level 2 Semantic Check",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        2496,
-        1184
+        3168,
+        1456
       ],
       "credentials": {
         "postgres": {
@@ -161,13 +150,13 @@
         },
         "options": {}
       },
-      "id": "7a37f428-4c75-47be-b3a4-f4d4f7d5c005",
+      "id": "6192cc2e-9be8-4110-acf7-0eba6a31d1b3",
       "name": "Is Semantic Duplicate?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2672,
-        1184
+        3344,
+        1456
       ]
     },
     {
@@ -175,16 +164,16 @@
         "operation": "executeQuery",
         "query": "INSERT INTO news_items (\n  title_original, title_en, title_zh, \n  summary_original, summary_en, summary_zh, \n  original_language, source_name, source_url, published_at, \n  parent_id, \n  importance_score, video_score, chinese_relevance_score, evergreen_score\n) VALUES (\n  $1, 'duplicate', 'duplicate', 'duplicate', 'duplicate', 'duplicate', \n  'en', $2, $3, $4, \n  $5, \n  0, 0, 0, 0\n);",
         "options": {
-          "queryReplacement": "={{ [ \n  $json.title,\n  $('Workflow Trigger').item.json.name,\n  $json.link, \n  $json.pubDate, \n  $json.id \n] }}"
+          "queryReplacement": "={{ [ \n  $json.title,\n  $('Sub-Workflow Trigger').item.json.name,\n  $json.link, \n  $json.pubDate, \n  $json.dup_id \n] }}"
         }
       },
-      "id": "393793d1-f3bd-4bf2-b7bd-71700722a990",
+      "id": "85c9f24b-e586-4f80-a8cb-c701d0ae8546",
       "name": "Insert as Child",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        2880,
-        1072
+        3552,
+        1344
       ],
       "credentials": {
         "postgres": {
@@ -195,15 +184,15 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const aiResponseStr = item.json.content[0].text;\n  const cleanedStr = aiResponseStr.replace(/```json/g, '').replace(/```/g, '').trim();\n  const parsed = JSON.parse(cleanedStr);\n\n  return {\n    ai_data: parsed,\n    vector: item.json.vector,\n    rss: item.json\n  };\n});"
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const aiResponseStr = item.json.content[0].text;\n  const cleanedStr = aiResponseStr.replace(/```json/g, '').replace(/```/g, '').trim();\n  try {\n    const parsed = JSON.parse(cleanedStr);\n    return {\n      ai_data: parsed,\n      vector: item.json.vector,\n      rss: item.json\n    };\n  } catch (e) {\n    throw new Error('Failed to parse LLM JSON: ' + e.message + '. Raw response was: ' + cleanedStr);\n  }\n});"
       },
-      "id": "e8a4f56d-2c9e-4497-8ee3-b41b7ffeea8b",
+      "id": "0a9281ed-ec95-46fc-beb8-ab0727a2a0d5",
       "name": "Parse AI Output",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3280,
-        1280
+        3952,
+        1552
       ]
     },
     {
@@ -211,16 +200,16 @@
         "operation": "executeQuery",
         "query": "INSERT INTO news_items (\n  title_original, title_en, title_zh, \n  summary_original, summary_en, summary_zh, \n  original_language, source_name, source_url, published_at, \n  country_tags, topic_tags, audience_tags, \n  importance_score, video_score, chinese_relevance_score, evergreen_score, \n  keywords, ai_analysis, official_source, youtube_suggestions, \n  title_vector\n) VALUES (\n  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, \n  $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, \n  $22\n);",
         "options": {
-          "queryReplacement": "={{ [ \n  $json.rss.title, \n  $json.ai_data.title_en, \n  $json.ai_data.title_zh, \n  $json.rss.contentSnippet, \n  $json.ai_data.summary_en, \n  $json.ai_data.summary_zh, \n  'en', \n  $('Workflow Trigger').item.json.name, \n  $json.rss.link, \n  $json.rss.pubDate, \n  $json.ai_data.country_tags || [], \n  $json.ai_data.topic_tags || [], \n  $json.ai_data.audience_tags || [], \n  $json.ai_data.importance_score || 0, \n  $json.ai_data.video_score || 0, \n  $json.ai_data.chinese_relevance_score || 0, \n  $json.ai_data.evergreen_score || 0, \n  $json.ai_data.keywords || [], \n  $json.ai_data.ai_analysis || '', \n  $json.ai_data.official_source ? true : false, \n  JSON.stringify($json.ai_data.youtube_suggestions || {}), \n  JSON.stringify($json.vector) \n] }}"
+          "queryReplacement": "={{ [ \n  $json.rss.title, \n  $json.ai_data.title_en, \n  $json.ai_data.title_zh, \n  $json.rss.contentSnippet, \n  $json.ai_data.summary_en, \n  $json.ai_data.summary_zh, \n  'en', \n  $('Sub-Workflow Trigger').item.json.name, \n  $json.rss.link, \n  $json.rss.pubDate, \n  $json.ai_data.country_tags || [], \n  $json.ai_data.topic_tags || [], \n  $json.ai_data.audience_tags || [], \n  $json.ai_data.importance_score || 0, \n  $json.ai_data.video_score || 0, \n  $json.ai_data.chinese_relevance_score || 0, \n  $json.ai_data.evergreen_score || 0, \n  $json.ai_data.keywords || [], \n  $json.ai_data.ai_analysis || '', \n  $json.ai_data.official_source ? true : false, \n  JSON.stringify($json.ai_data.youtube_suggestions || {}), \n  JSON.stringify($json.vector) \n] }}"
         }
       },
-      "id": "e12507ca-2c7f-4a4d-bb1e-f97747440723",
+      "id": "7f6949e4-7190-40b2-bea2-5aa0ede4885f",
       "name": "Insert Primary Item",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        3488,
-        1280
+        4160,
+        1552
       ],
       "credentials": {
         "postgres": {
@@ -255,7 +244,7 @@
             },
             {
               "name": "messages",
-              "value": "={{ \n[\n  {\n    \"role\": \"user\",\n    \"content\": `You are an expert AI immigration news analyst. Analyze the following news item and output JSON strictly conforming to the requested format.\n\nNews Title: ${$json.title}\nNews Content: ${$json.contentSnippet}\n\nPlease translate the title and summary to EN and ZH, provide tags (country_tags, topic_tags, audience_tags), multi-dimensional scores (0-100: importance_score, video_score, chinese_relevance_score, evergreen_score), extract keywords, write an ai_analysis, generate youtube_suggestions, and determine official_source.\n\nYou must return ONLY valid JSON conforming exactly to this structure (flat keys for translations):\n{\n  \"title_en\": \"English title translation\",\n  \"title_zh\": \"Chinese title translation\",\n  \"summary_en\": \"English summary translation\",\n  \"summary_zh\": \"Chinese summary translation\",\n  \"country_tags\": [\"tag1\", \"tag2\"],\n  \"topic_tags\": [\"tag1\", \"tag2\"],\n  \"audience_tags\": [\"tag1\", \"tag2\"],\n  \"importance_score\": 50,\n  \"video_score\": 50,\n  \"chinese_relevance_score\": 50,\n  \"evergreen_score\": 50,\n  \"keywords\": [\"keyword1\"],\n  \"ai_analysis\": \"AI analysis text\",\n  \"youtube_suggestions\": {\n    \"titles\": [\"YouTube title option 1\", \"YouTube title option 2\"],\n    \"thumbnail_prompt\": \"Description of a matching thumbnail image\"\n  },\n  \"official_source\": false\n}`\n  }\n]\n}}"
+              "value": "={{ \n[\n  {\n    \"role\": \"user\",\n    \"content\": `You are an expert AI immigration news analyst. Analyze the following news item and output JSON strictly conforming to the requested format.\n\nNews Title: ${$json.title}\nNews Content: ${$json.contentSnippet}\n\nCRITICAL JSON INSTRUCTIONS:\n1. Any double quotes inside JSON string values must be strictly avoided or replaced with single quotes (e.g. use 'H-1B' instead of \"H-1B\") to prevent syntax errors.\n2. Do not write markdown explanation around the JSON, only return the JSON block itself.\n\nPlease translate the title and summary to EN and ZH, provide tags (country_tags, topic_tags, audience_tags), multi-dimensional scores (0-100: importance_score, video_score, chinese_relevance_score, evergreen_score), extract keywords, write an ai_analysis, generate youtube_suggestions, and determine official_source.\n\nYou must return ONLY valid JSON conforming exactly to this structure (flat keys for translations):\n{\n  \"title_en\": \"English title translation\",\n  \"title_zh\": \"Chinese title translation\",\n  \"summary_en\": \"English summary translation\",\n  \"summary_zh\": \"Chinese summary translation\",\n  \"country_tags\": [\"tag1\", \"tag2\"],\n  \"topic_tags\": [\"tag1\", \"tag2\"],\n  \"audience_tags\": [\"tag1\", \"tag2\"],\n  \"importance_score\": 50,\n  \"video_score\": 50,\n  \"chinese_relevance_score\": 50,\n  \"evergreen_score\": 50,\n  \"keywords\": [\"keyword1\"],\n  \"ai_analysis\": \"AI analysis text\",\n  \"youtube_suggestions\": {\n    \"titles\": [\"YouTube title option 1\", \"YouTube title option 2\"],\n    \"thumbnail_prompt\": \"Description of a matching thumbnail image\"\n  },\n  \"official_source\": false\n}`\n  }\n]\n}}"
             },
             {
               "name": "max_tokens",
@@ -265,13 +254,13 @@
         },
         "options": {}
       },
-      "id": "68308e18-648f-4775-a629-f0f1505f6523",
+      "id": "a1425604-445d-47ea-8231-b3f7d474a858",
       "name": "LLM Enrichment",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2880,
-        1280
+        3552,
+        1552
       ],
       "notesInFlow": true,
       "notes": "Calls MiniMax AI to translate and score"
@@ -285,10 +274,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        2320,
-        1184
+        2992,
+        1456
       ],
-      "id": "4e056695-a4ee-45d5-95be-a88c9743d0a1",
+      "id": "b288a1e7-e851-49cb-b08d-b232d1d3ea63",
       "name": "Merge"
     },
     {
@@ -308,10 +297,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2144,
-        1184
+        2816,
+        1456
       ],
-      "id": "8ff6ea45-0355-40c6-8882-485c9a30a18d",
+      "id": "788c1126-91d2-4649-9ff0-c77c6b843b6b",
       "name": "Edit Fields"
     },
     {
@@ -323,26 +312,28 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        3088,
-        1280
+        3760,
+        1552
       ],
-      "id": "6cff18eb-f0a4-4fd9-bcc0-4269d8e17929",
+      "id": "27133b23-84f9-4cf6-8250-d9749131b149",
       "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "Sub-Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        1888,
+        1344
+      ]
     }
   ],
   "pinData": {},
   "connections": {
-    "Workflow Trigger": {
-      "main": [
-        [
-          {
-            "node": "RSS Feed Read",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "RSS Feed Read": {
       "main": [
         [
@@ -481,18 +472,31 @@
           }
         ]
       ]
+    },
+    "Sub-Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS Feed Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "availableInMCP": false
   },
   "versionId": "YOUR_VERSION_ID",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "YOUR_INSTANCE_ID"
   },
+  "nodeGroups": [],
   "id": "YOUR_SUB_WORKFLOW_ID",
   "tags": []
 }
