@@ -28,6 +28,7 @@ export default function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              prefetch={false}
               className={classNames('nav-item', isActive && 'nav-item-active')}
             >
               <item.icon className="nav-icon" size={20} />

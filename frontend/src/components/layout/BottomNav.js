@@ -22,6 +22,7 @@ export default function BottomNav() {
           <Link
             key={item.name}
             href={item.href}
+            prefetch={false}
             className={classNames('bottom-nav-item', isActive && 'active')}
           >
             <item.icon size={24} />
