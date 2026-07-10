@@ -90,7 +90,7 @@ The project delegates data fetching, semantic deduplication, and AI scoring to *
 1. **Access n8n**: Open `http://localhost:5678` (or your server's equivalent).
 2. **Import Workflow**: 
    - Go to **Workflows** -> **Add Workflow** -> **Import from File**.
-   - Select the `n8n_workflow.json` file provided in this repository root.
+   - Select the `n8n_workflow_template.json` file provided in this repository root.
 3. **Understand and Configure the Nodes**:
    Below is the detailed explanation and configuration guide for every node in the imported workflow.
 

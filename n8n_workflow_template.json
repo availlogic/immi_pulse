@@ -1,0 +1,508 @@
+{
+  "name": "ImmiPulse News Ingestion & AI Enrichment",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "id": "a6bde83a-022e-4947-a255-bc7daa45df09",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        1216,
+        1072
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.google.com/alerts/feeds/YOUR_GOOGLE_ALERTS_FEED_ID_1/YOUR_GOOGLE_ALERTS_FEED_ID_2",
+        "options": {}
+      },
+      "id": "69262b6c-2523-435e-89a3-0e3f9b54f1ae",
+      "name": "RSS Feed Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        1072
+      ],
+      "notesInFlow": true,
+      "notes": "Replace with your RSS URL"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  (SELECT id FROM news_items WHERE source_url = $1 LIMIT 1) AS db_id,\n  $1::text AS link,\n  $2::text AS title,\n  $3::text AS \"contentSnippet\",\n  $4::text AS \"pubDate\",\n  $5::text AS id;",
+        "options": {
+          "queryReplacement": "={{ [$json.link, $json.title || '', $json.contentSnippet || '', $json.pubDate || '', $json.id || ''] }}"
+        }
+      },
+      "id": "a7dd73ea-ed66-4ad7-8fdc-c3317106fdbb",
+      "name": "Level 1 Dup Check",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1616,
+        1072
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIALS_ID",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "e0e13204-5f43-4e63-b1d6-419b48c3b4a2",
+              "leftValue": "={{ $json.db_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "78dbfe89-aa78-4bd9-a211-522859b9217c",
+      "name": "Is Duplicate (URL)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        1072
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://tei-embeddings:80/embed",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "inputs",
+              "value": "={{ $('RSS Feed Read').item.json.title }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "21453124-a9b8-47b5-85df-b59dfaad3aca",
+      "name": "TEI Generate Embeddings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1984,
+        1184
+      ],
+      "notesInFlow": true,
+      "notes": "Calls local TEI container"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  sub.id AS dup_id, \n  sub.distance,\n  $2::text AS link,\n  $3::text AS title,\n  $4::text AS \"contentSnippet\",\n  $5::text AS \"pubDate\",\n  $6::text AS id,\n  $7::json AS vector\nFROM (\n  SELECT id, title_vector <-> $1::vector AS distance \n  FROM news_items \n  ORDER BY title_vector <-> $1::vector \n  LIMIT 1\n) AS sub \nUNION ALL \nSELECT \n  NULL AS dup_id, \n  999.0 AS distance,\n  $2::text AS link,\n  $3::text AS title,\n  $4::text AS \"contentSnippet\",\n  $5::text AS \"pubDate\",\n  $6::text AS id,\n  $7::json AS vector\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [\n  JSON.stringify($json.data), \n  $json.link, \n  $json.title, \n  $json.contentSnippet || '', \n  $json.pubDate || '', \n  $json.id, \n  JSON.stringify($json.data)\n] }}"
+        }
+      },
+      "id": "2dbcc176-e3ba-49e5-bbca-a938efa27369",
+      "name": "Level 2 Semantic Check",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        2496,
+        1184
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIALS_ID",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "semantic_dist",
+              "leftValue": "={{ $json.distance }}",
+              "rightValue": 0.12,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7a37f428-4c75-47be-b3a4-f4d4f7d5c005",
+      "name": "Is Semantic Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        1184
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO news_items (\n  title_original, title_en, title_zh, \n  summary_original, summary_en, summary_zh, \n  original_language, source_name, source_url, published_at, \n  parent_id, \n  importance_score, video_score, chinese_relevance_score, evergreen_score\n) VALUES (\n  $1, 'duplicate', 'duplicate', 'duplicate', 'duplicate', 'duplicate', \n  'en', 'Google Alerts', $2, $3, \n  $4, \n  0, 0, 0, 0\n);",
+        "options": {
+          "queryReplacement": "={{ [ \n  $json.title,\n  $json.link, \n  $json.pubDate, \n  $json.id \n] }}"
+        }
+      },
+      "id": "393793d1-f3bd-4bf2-b7bd-71700722a990",
+      "name": "Insert as Child",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        2880,
+        1072
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIALS_ID",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const aiResponseStr = item.json.content[0].text;\n  const cleanedStr = aiResponseStr.replace(/```json/g, '').replace(/```/g, '').trim();\n  const parsed = JSON.parse(cleanedStr);\n\n  return {\n    ai_data: parsed,\n    vector: item.json.vector,\n    rss: item.json\n  };\n});"
+      },
+      "id": "e8a4f56d-2c9e-4497-8ee3-b41b7ffeea8b",
+      "name": "Parse AI Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3280,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO news_items (\n  title_original, title_en, title_zh, \n  summary_original, summary_en, summary_zh, \n  original_language, source_name, source_url, published_at, \n  country_tags, topic_tags, audience_tags, \n  importance_score, video_score, chinese_relevance_score, evergreen_score, \n  keywords, ai_analysis, official_source, youtube_suggestions, \n  title_vector\n) VALUES (\n  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, \n  $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, \n  $22\n);",
+        "options": {
+          "queryReplacement": "={{ [ \n  $json.rss.title, \n  $json.ai_data.title_en, \n  $json.ai_data.title_zh, \n  $json.rss.contentSnippet, \n  $json.ai_data.summary_en, \n  $json.ai_data.summary_zh, \n  'en', \n  'Google Alerts', \n  $json.rss.link, \n  $json.rss.pubDate, \n  $json.ai_data.country_tags || [], \n  $json.ai_data.topic_tags || [], \n  $json.ai_data.audience_tags || [], \n  $json.ai_data.importance_score || 0, \n  $json.ai_data.video_score || 0, \n  $json.ai_data.chinese_relevance_score || 0, \n  $json.ai_data.evergreen_score || 0, \n  $json.ai_data.keywords || [], \n  $json.ai_data.ai_analysis || '', \n  $json.ai_data.official_source ? true : false, \n  JSON.stringify($json.ai_data.youtube_suggestions || {}), \n  JSON.stringify($json.vector) \n] }}"
+        }
+      },
+      "id": "e12507ca-2c7f-4a4d-bb1e-f97747440723",
+      "name": "Insert Primary Item",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        3488,
+        1280
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIALS_ID",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.minimaxi.com/anthropic/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "={{$env.MINIMAX_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "MiniMax-M3"
+            },
+            {
+              "name": "messages",
+              "value": "={{ \n[\n  {\n    \"role\": \"user\",\n    \"content\": `You are an expert AI immigration news analyst. Analyze the following news item and output JSON strictly conforming to the requested format.\n\nNews Title: ${$json.title}\nNews Content: ${$json.contentSnippet}\n\nPlease translate the title and summary to EN and ZH, provide tags (country_tags, topic_tags, audience_tags), multi-dimensional scores (0-100: importance_score, video_score, chinese_relevance_score, evergreen_score), extract keywords, write an ai_analysis, generate youtube_suggestions, and determine official_source.\n\nYou must return ONLY valid JSON conforming exactly to this structure (flat keys for translations):\n{\n  \"title_en\": \"English title translation\",\n  \"title_zh\": \"Chinese title translation\",\n  \"summary_en\": \"English summary translation\",\n  \"summary_zh\": \"Chinese summary translation\",\n  \"country_tags\": [\"tag1\", \"tag2\"],\n  \"topic_tags\": [\"tag1\", \"tag2\"],\n  \"audience_tags\": [\"tag1\", \"tag2\"],\n  \"importance_score\": 50,\n  \"video_score\": 50,\n  \"chinese_relevance_score\": 50,\n  \"evergreen_score\": 50,\n  \"keywords\": [\"keyword1\"],\n  \"ai_analysis\": \"AI analysis text\",\n  \"youtube_suggestions\": {},\n  \"official_source\": false\n}`\n  }\n]\n}}"
+            },
+            {
+              "name": "max_tokens",
+              "value": "={{ 4000 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "68308e18-648f-4775-a629-f0f1505f6523",
+      "name": "LLM Enrichment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2880,
+        1280
+      ],
+      "notesInFlow": true,
+      "notes": "Calls MiniMax AI to translate and score"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2320,
+        1184
+      ],
+      "id": "4e056695-a4ee-45d5-95be-a88c9743d0a1",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2044384b-34f3-4ba1-807b-53d741ecc6d7",
+              "name": "data",
+              "value": "={{ $json }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2144,
+        1184
+      ],
+      "id": "8ff6ea45-0355-40c6-8882-485c9a30a18d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3088,
+        1280
+      ],
+      "id": "6cff18eb-f0a4-4fd9-bcc0-4269d8e17929",
+      "name": "Merge1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS Feed Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Feed Read": {
+      "main": [
+        [
+          {
+            "node": "Level 1 Dup Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Level 1 Dup Check": {
+      "main": [
+        [
+          {
+            "node": "Is Duplicate (URL)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Duplicate (URL)?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "TEI Generate Embeddings",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "TEI Generate Embeddings": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Level 2 Semantic Check": {
+      "main": [
+        [
+          {
+            "node": "Is Semantic Duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Semantic Duplicate?": {
+      "main": [
+        [
+          {
+            "node": "Insert as Child",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LLM Enrichment",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Parse AI Output": {
+      "main": [
+        [
+          {
+            "node": "Insert Primary Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Enrichment": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Level 2 Semantic Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "YOUR_VERSION_ID",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_INSTANCE_ID"
+  },
+  "nodeGroups": [],
+  "id": "YOUR_WORKFLOW_ID",
+  "tags": []
+}
