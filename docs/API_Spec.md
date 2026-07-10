@@ -159,8 +159,11 @@ Retrieve detailed translations, AI analysis, recommended titles, and duplicate s
       "source_name": "Japan Times",
       "source_url": "https://japantimes.co.jp/japan-visa-update"
     }
-  ]
+  ],
+  "is_starred": false,
+  "candidate_notes": null
 }
+
 ```
 #### Response (`404 Not Found`)
 ```json

@@ -157,3 +157,23 @@ class TestGetNewsDetail:
         fake_id = uuid.uuid4()
         resp = await client.get(f"/api/news/{fake_id}")
         assert resp.status_code == 404
+
+    async def test_get_news_detail_includes_starred_and_notes(self, client, session):
+        """Detail includes is_starred status and candidate_notes if starred."""
+        item = await create_news_item(session)
+        await create_candidate(session, item.id, notes="Test notes for candidate")
+        resp = await client.get(f"/api/news/{item.id}")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["is_starred"] is True
+        assert body["candidate_notes"] == "Test notes for candidate"
+
+    async def test_get_news_detail_unstarred(self, client, session):
+        """Detail shows is_starred as False and candidate_notes as None if not starred."""
+        item = await create_news_item(session)
+        resp = await client.get(f"/api/news/{item.id}")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["is_starred"] is False
+        assert body["candidate_notes"] is None
+

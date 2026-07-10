@@ -147,7 +147,8 @@ async def get_news_detail(
 ) -> NewsDetailResponse | None:
     """Get full details for a single news item, including duplicates."""
     query = select(NewsItem).where(NewsItem.id == news_id).options(
-        selectinload(NewsItem.children)
+        selectinload(NewsItem.children),
+        selectinload(NewsItem.candidate),
     )
     result = await db.execute(query)
     item = result.scalar_one_or_none()
@@ -240,4 +241,6 @@ async def get_news_detail(
             titles=yt_titles, thumbnail_prompt=yt_thumb
         ),
         duplicates=duplicates,
+        is_starred=item.candidate is not None,
+        candidate_notes=item.candidate.notes if item.candidate else None,
     )

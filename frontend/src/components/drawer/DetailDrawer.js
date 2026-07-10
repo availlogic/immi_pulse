@@ -23,20 +23,20 @@ export default function DetailDrawer({ newsId, isOpen, onClose, onStarToggle, on
 
   if (!isOpen) return null;
 
-  const content = detail?.data;
+  const content = detail;
 
   const getTitle = () => {
-    if (!content) return '';
-    if (activeLang === 'zh') return content.title_zh || content.title_en;
-    if (activeLang === 'en') return content.title_en;
-    return content.title_original || content.title_en;
+    if (!content || !content.titles) return '';
+    if (activeLang === 'zh') return content.titles.zh || content.titles.en;
+    if (activeLang === 'en') return content.titles.en;
+    return content.titles.original || content.titles.en;
   };
 
   const getSummary = () => {
-    if (!content) return '';
-    if (activeLang === 'zh') return content.summary_zh || content.summary_en;
-    if (activeLang === 'en') return content.summary_en;
-    return content.summary_original || content.summary_en;
+    if (!content || !content.summaries) return '';
+    if (activeLang === 'zh') return content.summaries.zh || content.summaries.en;
+    if (activeLang === 'en') return content.summaries.en;
+    return content.summaries.original || content.summaries.en;
   };
 
   return (

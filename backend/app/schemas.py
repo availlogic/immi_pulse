@@ -125,6 +125,9 @@ class NewsDetailResponse(BaseModel):
     keywords: list[str]
     youtube_suggestions: YoutubeSuggestionsResponse
     duplicates: list[DuplicateSource]
+    is_starred: bool = False
+    candidate_notes: str | None = None
+
 
 
 # --- Filters ---

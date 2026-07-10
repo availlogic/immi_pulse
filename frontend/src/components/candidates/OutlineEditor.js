@@ -24,9 +24,9 @@ export default function OutlineEditor({ candidate, onSaveNotes, onToast }) {
   if (!candidate) return null;
 
   const handleCopy = () => {
-    const detail = detailData?.data;
+    const detail = detailData;
     const sources = detail ? [
-      detail.metadata.source_url, 
+      detail.metadata?.source_url, 
       ...(detail.duplicates || []).map(d => d.source_url)
     ] : [];
 
@@ -74,17 +74,17 @@ ${sources.map((url, i) => `- Source ${i + 1}: ${url}`).join('\n')}
             <p>Loading AI context...</p>
           ) : (
             <div className="ai-context">
-              {detailData?.data?.ai_analysis && (
+              {detailData?.ai_analysis && (
                 <div className="context-card">
                   <h4>Demographic Impact</h4>
-                  <p>{detailData.data.ai_analysis}</p>
+                  <p>{detailData.ai_analysis}</p>
                 </div>
               )}
-              {detailData?.data?.youtube_suggestions && (
+              {detailData?.youtube_suggestions && (
                 <div className="context-card">
                   <h4>Suggested Titles</h4>
                   <ul>
-                    {detailData.data.youtube_suggestions.titles.map((t, i) => <li key={i}>{t}</li>)}
+                    {detailData.youtube_suggestions.titles.map((t, i) => <li key={i}>{t}</li>)}
                   </ul>
                 </div>
               )}
