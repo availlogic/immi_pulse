@@ -11,7 +11,7 @@ export default function SortSelect({ value, onChange }) {
       >
         <option value="published_at">Publication Date</option>
         <option value="video_score">Video Score</option>
-        <option value="chinese_relevance">Chinese Relevance</option>
+        <option value="chinese_relevance_score">Chinese Relevance</option>
       </select>
     </div>
   );
