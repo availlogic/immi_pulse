@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Star, Settings } from 'lucide-react';
+import { Home, Star } from 'lucide-react';
 import { classNames } from '../../lib/utils';
 import './layout.css';
 
@@ -37,13 +37,6 @@ export default function Sidebar() {
           );
         })}
       </nav>
-      
-      <div className="sidebar-footer">
-        <button className="nav-item">
-          <Settings className="nav-icon" size={20} />
-          <span>Settings</span>
-        </button>
-      </div>
     </div>
   );
 }
