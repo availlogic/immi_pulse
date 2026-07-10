@@ -43,6 +43,7 @@ services:
       - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD}
       - MINIMAX_API_KEY=${MINIMAX_API_KEY}
       - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - GENERIC_TIMEZONE=Europe/Dublin
     volumes:
       - n8n_data:/home/node/.n8n
     networks:
