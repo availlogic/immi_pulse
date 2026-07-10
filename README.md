@@ -85,64 +85,53 @@ docker compose up -d
 *(If you update your `.env` file later, you must run `docker compose up -d` again to apply the changes to the containers. `docker compose restart` is not sufficient!)*
 
 ### 4. Setup n8n AI News Ingestion Pipeline
-The project delegates data fetching, semantic deduplication, and AI scoring to **n8n**.
+The project delegates data fetching, semantic deduplication, and AI scoring to **n8n**. To support dynamic scheduling and multiple RSS feeds efficiently, the pipeline is divided into a **Master** and **Sub-workflow** pattern:
 
-1. **Access n8n**: Open `http://localhost:5678` (or your server's equivalent).
-2. **Import Workflow**: 
-   - Go to **Workflows** -> **Add Workflow** -> **Import from File**.
-   - Select the `n8n_workflow_template.json` file provided in this repository root.
-3. **Understand and Configure the Nodes**:
-   Below is the detailed explanation and configuration guide for every node in the imported workflow.
+*   **Master Workflow (n8n_master_workflow.json)**: Runs on a schedule, queries active RSS feeds from the database, and triggers the sub-workflow for each source.
+*   **Sub-workflow (n8n_sub_workflow.json)**: Receives a single RSS URL, fetches its feed, checks for duplicates, computes embeddings via TEI, scores the article with MiniMax LLM, and inserts it into the database.
 
-   * **Schedule Trigger**: 
-     - **Purpose**: Runs the workflow automatically every 4 hours.
-     - **Action**: None required (unless you want to change the frequency).
-   
-   * **RSS Feed Read**:
-     - **Purpose**: Fetches the latest news articles from an RSS source.
-     - **Action (Required)**: Double-click the node and replace the default `URL` with your actual RSS feed URL (e.g., a Google Alerts RSS link).
-   
-   * **Level 1 Dup Check (Postgres)**:
-     - **Purpose**: Queries the database to check if the exact URL has already been ingested.
-     - **Action (Required)**: Double-click the node, go to *Credential to connect with*, create a new credential (`Host`: `postgres`, `Database`: `immipulse`, User/Pass from your `.env`).
-   
-   * **Is Duplicate (URL)? (If Node)**:
-     - **Purpose**: Branches the workflow. If the URL exists, it stops processing to save AI costs. If it's new, it continues.
-     - **Action**: None required.
-   
-   * **TEI Generate Embeddings (HTTP Request)**:
-     - **Purpose**: Sends the article title to your local TEI container (`http://tei-embeddings:80/embed`) to generate a 384-dimensional vector.
-     - **Action**: None required.
-   
-   * **Level 2 Semantic Check (Postgres)**:
-     - **Purpose**: Performs a vector similarity search (`<->`) against existing articles to find semantic duplicates.
-     - **Action (Required)**: Select the Postgres credential you created earlier.
-   
-   * **Is Semantic Duplicate? (If Node)**:
-     - **Purpose**: Checks if the vector distance is `< 0.12`.
-     - **Action**: None required.
-   
-   * **Insert as Child (Postgres)**:
-     - **Purpose**: If it's a semantic duplicate, it's inserted with scores of `0` and linked to the original article via `parent_id`.
-     - **Action (Required)**: Select the Postgres credential you created earlier.
-   
-   * **MiniMax LLM Enrichment (HTTP Request)**:
-     - **Purpose**: Sends the content to MiniMax (`abab6.5-chat`) for translation, tagging, multi-dimensional scoring, and analysis. It automatically authenticates using `{{$env.MINIMAX_API_KEY}}`.
-     - **Action (Optional)**: You can double-click and edit the `messages` array if you want to tweak the prompt instructions.
-   
-   * **Parse AI Output (Code)**:
-     - **Purpose**: Cleans up any markdown formatting (e.g., ` ```json `) returned by the AI and converts it into a pure JSON object.
-     - **Action**: None required.
-   
-   * **Insert Primary Item (Postgres)**:
-     - **Purpose**: Inserts the newly enriched, fully scored, and vectorized article into the database for the frontend to consume.
-     - **Action (Required)**: Select the Postgres credential you created earlier.
+#### Deployment Steps:
 
-4. **Activate**:
-   - Once all credentials are set, click **Execute Workflow** at the bottom to run a test.
-   - Toggle the workflow button in the top right corner to **Active**.
+1.  **Access n8n**: Open `http://localhost:5678` (or your server's equivalent) in your browser.
+2.  **Import & Configure the Sub-workflow**:
+    *   Go to **Workflows** -> **Add Workflow** -> **Import from File**.
+    *   Select the `n8n_sub_workflow.json` file.
+    *   **Postgres Database Credentials**: Double-click any Postgres node (e.g. *Level 1 Dup Check*, *Level 2 Semantic Check*, *Insert Primary Item*), go to *Credential to connect with*, and create/select your credential pointing to host `postgres`, database `immipulse` with the user/password from your `.env`.
+    *   **Embeddings Configuration**: Ensure the *TEI Generate Embeddings* HTTP node points to `http://tei-embeddings:80/embed` (this is the service name defined in `docker-compose.yml`).
+    *   **Save and Copy ID**: Save the workflow. Copy the sub-workflow's UUID from the browser URL (e.g., the `<SUB_WORKFLOW_ID>` from `.../workflow/<SUB_WORKFLOW_ID>`).
+3.  **Import & Configure the Master Workflow**:
+    *   Go to **Workflows** -> **Add Workflow** -> **Import from File**.
+    *   Select the `n8n_master_workflow.json` file.
+    *   **Postgres Database Credentials**: Select the same Postgres credential you created in Step 2 for the *Get Active Sources* node.
+    *   **Link to Sub-workflow**: Open the *Call 'My Sub-Workflow 1'* (Execute Workflow) node, set the *Workflow ID* parameters to target your Sub-workflow's ID copied in Step 2.
+    *   **Save**.
+4.  **Activate Workflows**:
+    *   Open both workflows and toggle the switch in the top right corner to **Active**.
+    *   The Master workflow will run every 4 hours automatically, but you can also click **Execute Workflow** on the Master to run a manual poll immediately.
 
-### 5. Frontend Deployment (Cloudflare Pages)
+### 5. Managing RSS Sources (CLI)
+Instead of hardcoding RSS feed URLs directly into the workflows, they are managed dynamically in the PostgreSQL database under the `rss_sources` table.
+
+A helper command-line script is provided in the project root to manage these feeds inside the running Docker container:
+
+```bash
+# Make the helper script executable
+chmod +x manage_rss.sh
+
+# List all current RSS feeds and their active statuses
+./manage_rss.sh list
+
+# Add a new active RSS source
+./manage_rss.sh add "USCIS News" "https://www.uscis.gov/news/feed"
+
+# Toggle the active/inactive state of a feed (via URL or UUID)
+./manage_rss.sh toggle "https://www.uscis.gov/news/feed"
+
+# Delete a feed (via URL or UUID)
+./manage_rss.sh delete "https://www.uscis.gov/news/feed"
+```
+
+### 6. Frontend Deployment (Cloudflare Pages)
 The Next.js frontend is deployed to Cloudflare Pages using the `wrangler` CLI.
 
 1. **Prepare Environment Variables**:
