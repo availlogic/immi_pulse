@@ -250,9 +250,57 @@ input:checked + .slider:before {
   gap: var(--spacing-xs);
 }
 
+.filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+  transition: opacity 0.2s ease;
+}
+
+.filter-header:hover {
+  opacity: 0.8;
+}
+
+.filter-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
 .filter-title {
   font-size: 0.9rem;
   color: var(--color-text-muted);
+  margin: 0;
+}
+
+.filter-active-badge {
+  font-size: 0.75rem;
+  background-color: var(--color-blue-light);
+  color: var(--color-blue-primary);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.fold-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.fold-toggle-btn:hover {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-main);
 }
 
 .filter-tags {
