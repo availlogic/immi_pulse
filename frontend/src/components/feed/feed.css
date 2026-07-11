@@ -177,6 +177,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   padding: var(--spacing-md);
+  width: 100%;
 }
 
 .filter-toggle {
@@ -253,7 +254,8 @@ input:checked + .slider:before {
 .filter-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--spacing-sm);
+  width: fit-content;
   cursor: pointer;
   user-select: none;
   padding: 4px 0;
