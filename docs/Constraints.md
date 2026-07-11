@@ -5,7 +5,7 @@ This document outlines the operational boundaries, technical requirements, and s
 ## Technology Constraints
 
 - **Workflow Engine**: Self-hosted n8n (for RSS collection, translation pipelines, database storage, and scheduling). Workflows must utilize an **asynchronous webhook design** when dispatching parallel batch LLM requests to prevent timeout errors.
-- **LLM Integration**: MiniMax M3 (via an Anthropic-compatible API wrapper) for translation, semantic analysis, and scoring.
+- **LLM Integration**: Anthropic-compatible LLM for translation, semantic analysis, and scoring.
 - **Embedding Generation**: Local HuggingFace embedding container (hosting `all-MiniLM-L6-v2`) on the self-hosted Ubuntu Server, providing free semantic vectors for de-duplication without external API dependencies.
 - **Backend API**: FastAPI (Python) for servicing the dashboard, filtering, searching, and managing saved candidates.
 - **Database**: PostgreSQL with the `pgvector` extension, storing strictly metadata (no full article bodies, HTML content, or media files).
@@ -33,7 +33,7 @@ This document outlines the operational boundaries, technical requirements, and s
 
 ## Security & Configuration Constraints
 
-- **Secrets Management**: Configuration parameters and API keys (e.g., `MINIMAX_API_KEY`, `DATABASE_URL`) must be injected securely via environment variables.
+- **Secrets Management**: Configuration parameters and API keys (e.g., `LLM_API_KEY`, `DATABASE_URL`) must be injected securely via environment variables.
 
 ## Coding & Engineering Constraints
 

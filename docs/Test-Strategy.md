@@ -23,7 +23,7 @@ To ensure system reliability, the testing suite is structured across four distin
   * **FastAPI ↔ PostgreSQL + pgvector**: Verifying query parameter mappings (filtering by countries, topics, audiences), full-text search index usage, pagination bounds, score sorting, candidate stars persistence, and note saves.
   * **n8n Workflow ↔ Local TEI Container**: Verifying correct vectorization of titles via local `all-MiniLM-L6-v2` `/embed` API.
   * **n8n Workflow ↔ PostgreSQL**: Verifying Level 1 de-duplication (URL/title hash checks), Level 2 pgvector similarity querying (cosine distance checks), and insertion of fully enriched metadata.
-  * **n8n Workflow ↔ MiniMax M3**: Verifying LLM parsing correctness, translations format, tags formatting, and retry logic on connection failures.
+  * **n8n Workflow ↔ LLM API**: Verifying LLM parsing correctness, translations format, tags formatting, and retry logic on connection failures.
   * **Data Retention Purge Daily Cron**: Verifying that entries older than 90 days are deleted unless starred in the candidates table or parents of a starred duplicate.
 
 ### 1.3 System Testing
@@ -50,7 +50,7 @@ Testing focus is prioritized based on business impact and frequency of use:
 | :--- | :--- | :--- | :--- | :--- |
 | **Authentication & CF Tunnel** | Yes | High | 100% | Critical security gate. All endpoint tests must run with and without token verification. |
 | **Level 1 & 2 De-duplication** | Yes | High | 100% | Prevents newsroom clutter (success metric: >90% de-duplication rate). Tested using synthetic duplicate sets. |
-| **MiniMax M3 Translation/Grading** | Yes | Medium | 95% | Core analysis output. Verify output formats, score boundaries, and retry resilience. |
+| **LLM Translation/Grading** | Yes | Medium | 95% | Core analysis output. Verify output formats, score boundaries, and retry resilience. |
 | **Candidates Annotations & Auto-save** | Yes | Medium | 100% | Human-in-the-loop editing must be loss-prevented. Verify blur auto-saves and validation bounds. |
 | **Daily Data Retention Purge** | No | Medium | 90% | Keeps database lightweight. Verify daily database cleanup scripts. |
 | **Feed Filtering & Text Search** | Yes | Low | 95% | Instant feed rendering (<200ms) and tags metadata correctness. |
@@ -63,7 +63,7 @@ Testing focus is prioritized based on business impact and frequency of use:
 | **FR-1.1, FR-1.2** | Automated ingestion & scheduled n8n workflow | [Integration-Test-Cases.md](file:///Users/victorxu/projects/immi_pulse/docs/Integration-Test-Cases.md#IT-004) |
 | **FR-2.1, FR-2.2** | Language detection & translation matrix | [Integration-Test-Cases.md](file:///Users/victorxu/projects/immi_pulse/docs/Integration-Test-Cases.md#IT-005) |
 | **FR-2.3** | Level 1 & Level 2 Semantic De-duplication | [Integration-Test-Cases.md](file:///Users/victorxu/projects/immi_pulse/docs/Integration-Test-Cases.md#IT-006) |
-| **FR-2.4** | LLM enrichment & scoring via MiniMax M3 | [Integration-Test-Cases.md](file:///Users/victorxu/projects/immi_pulse/docs/Integration-Test-Cases.md#IT-007) |
+| **FR-2.4** | LLM enrichment & scoring via LLM API | [Integration-Test-Cases.md](file:///Users/victorxu/projects/immi_pulse/docs/Integration-Test-Cases.md#IT-007) |
 | **FR-3.1, FR-3.2** | FastAPI REST Endpoints & Authentication | [Integration-Test-Cases.md](file:///Users/victorxu/projects/immi_pulse/docs/Integration-Test-Cases.md#IT-001) |
 | **FR-4.1 - FR-4.3** | Next.js grid, sidebar filters, detail drawer | [Functional-Test-Cases.md](file:///Users/victorxu/projects/immi_pulse/docs/Functional-Test-Cases.md#FT-001) |
 | **FR-4.4** | Saved Candidates Planning board & outlines | [Functional-Test-Cases.md](file:///Users/victorxu/projects/immi_pulse/docs/Functional-Test-Cases.md#FT-004) |

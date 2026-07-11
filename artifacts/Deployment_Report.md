@@ -7,7 +7,7 @@ Before deploying the ImmiPulse system to the remote production environment, ensu
 1. **Environment Configuration:**
    - Create a `.env` file in the project root based on `.env.example`.
    - Set a strong `DB_PASSWORD`.
-   - Configure `MINIMAX_API_KEY` for AI summaries.
+   - Configure `LLM_API_KEY`, `LLM_API_URL`, and `LLM_MODEL` for AI summaries.
    - Generate a secure `DASHBOARD_API_TOKEN` for frontend/backend communication.
    - Set the `TUNNEL_TOKEN` provided by Cloudflare Zero Trust.
 

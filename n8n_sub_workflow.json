@@ -221,13 +221,13 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.minimaxi.com/anthropic/v1/messages",
+        "url": "={{$env.LLM_API_URL || 'YOUR_LLM_API_URL_PLACEHOLDER'}}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-Api-Key",
-              "value": "={{$env.MINIMAX_API_KEY}}"
+              "value": "={{$env.LLM_API_KEY}}"
             },
             {
               "name": "Content-Type",
@@ -240,7 +240,7 @@
           "parameters": [
             {
               "name": "model",
-              "value": "MiniMax-M3"
+              "value": "={{$env.LLM_MODEL || 'YOUR_LLM_MODEL_PLACEHOLDER'}}"
             },
             {
               "name": "messages",
@@ -263,7 +263,7 @@
         1552
       ],
       "notesInFlow": true,
-      "notes": "Calls MiniMax AI to translate and score"
+      "notes": "Calls LLM API to translate and score"
     },
     {
       "parameters": {

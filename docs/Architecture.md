@@ -31,7 +31,7 @@ graph TD
     end
     
     %% External Cognitive Services
-    n8n <-->|HTTPS / Messages API| MiniMax[MiniMax M3 LLM API]
+    n8n <-->|HTTPS / Messages API| LLM[LLM API (Anthropic-Compatible)]
     
     %% External Ingestion Feeds
     RSS[External RSS / Govt Portals] -->|Poll Feeds| n8n
@@ -73,7 +73,7 @@ graph TD
   - Filter incoming feed entries using exact URL and title matches (Level 1 de-duplication).
   - Dispatch requests to the local embedding container to vectorize incoming story titles.
   - Query PostgreSQL using `pgvector` to identify and group semantic duplicates (Level 2 de-duplication).
-  - Dispatch asynchronous batch requests to MiniMax M3 for translations, multi-dimensional scoring, tag extraction, AI analysis paragraphs, and recommended titles.
+  - Dispatch asynchronous batch requests to the configured LLM for translations, multi-dimensional scoring, tag extraction, AI analysis paragraphs, and recommended titles.
   - Insert fully enriched metadata records into PostgreSQL.
 
 ### 2.5 Local Text Embeddings Inference (TEI) Container
@@ -96,7 +96,7 @@ sequenceDiagram
     participant Source as RSS / Government Portals
     participant DB as PostgreSQL (pgvector)
     participant TEI as Local TEI Container (all-MiniLM)
-    participant LLM as MiniMax M3 API (Anthropic-Compatible)
+    participant LLM as LLM API (Anthropic-Compatible)
     
     Cron->>Source: Poll RSS items (rolling window check)
     Source-->>Cron: Return news XML items (title, link, pubDate, raw summary)
@@ -213,7 +213,9 @@ services:
       - DB_POSTGRESDB_DATABASE=immipulse
       - DB_POSTGRESDB_USER=${DB_USER:-yutian}
       - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD}
-      - MINIMAX_API_KEY=${MINIMAX_API_KEY}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_API_URL=${LLM_API_URL}
+      - LLM_MODEL=${LLM_MODEL}
     volumes:
       - n8n_data:/home/node/.n8n
     networks:
@@ -264,7 +266,7 @@ volumes:
 ## 6. System Design Considerations
 
 ### 6.1 Reliability & Error Handling
-* **LLM Call Retries**: n8n workflows will utilize retry handlers with exponential backoff on MiniMax M3 API connections to survive API rate-limiting or brief network issues.
+* **LLM Call Retries**: n8n workflows will utilize retry handlers with exponential backoff on LLM API connections to survive API rate-limiting or brief network issues.
 * **Webhook Timeout Mitigation**: In n8n, when processing parallel chunks of Google Alerts RSS feeds, we use a webhook worker pattern or an asynchronous batching structure. Rather than blocking the main RSS collector execution, n8n queues URLs and processes them asynchronously via worker loops, preventing webhook timeout constraints.
 * **Local Embedding Availability**: Because the TEI service is hosted locally in the same Docker Compose network, we bypass public network latency and egress fees, guaranteeing high embedding throughput.
 

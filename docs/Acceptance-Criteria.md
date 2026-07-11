@@ -7,13 +7,13 @@ This document establishes the user-facing and system-level Acceptance Criteria a
 ## 1. Feature Acceptance Criteria
 
 ### 1.1 Ingestion & Processing Pipeline
-* **Feature Name**: Ingestion, Translation, and Grading (n8n & MiniMax M3)
+* **Feature Name**: Ingestion, Translation, and Grading (n8n & LLM)
 * **Acceptance Conditions**:
   - The pipeline must automatically execute every 3–4 hours.
   - Successfully parses RSS XML feeds, extracting URL, publication date, title, and initial snippet.
   - Generates and stores translation data under three parallel database columns: `Original`, `English`, and `Chinese`.
   - Classifies news items with country, topic, and target audience tags.
-  - Employs MiniMax M3 (via Anthropic API wrapper) to generate Chinese summaries (max 150 words), AI analysis paragraphs, recommended titles, and metric scores.
+  - Employs an Anthropic-compatible LLM to generate Chinese summaries (max 150 words), AI analysis paragraphs, recommended titles, and metric scores.
   - All calculated scores (Importance, Relevance, Video Suitability, Evergreen) must be integers between 0 and 100.
 * **Definition of Done (DoD)**:
   - The pipeline runs to completion without timeout errors (via asynchronous batch processing).

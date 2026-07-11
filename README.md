@@ -1,6 +1,6 @@
 # ImmiPulse: Yutian Immigration AI Newsroom
 
-ImmiPulse is a full-stack, AI-powered immigration newsroom designed for the Yutian brand. It aggregates global immigration news, scores them using AI (MiniMax), filters duplicates, and presents high-value video topic candidates for YouTube content creators.
+ImmiPulse is a full-stack, AI-powered immigration newsroom designed for the Yutian brand. It aggregates global immigration news, scores them using AI (Anthropic-compatible LLM), filters duplicates, and presents high-value video topic candidates for YouTube content creators.
 
 ## Architecture
 
@@ -74,8 +74,8 @@ cp .env.example .env
 ```
 Ensure you configure:
 - `TUNNEL_TOKEN`: The token you copied from Cloudflare Zero Trust.
+- `LLM_API_KEY`, `LLM_API_URL`, `LLM_MODEL` and database credentials.
 - `CORS_ORIGINS`: The exact URL of your frontend (e.g., `https://immipulse-frontend.maxithome.com`). This ensures the browser allows cross-origin requests.
-- `MINIMAX_API_KEY` and database credentials.
 
 ### 3. Start the Backend Infrastructure
 Deploy the entire stack, including PostgreSQL, TEI, n8n, FastAPI backend, and Cloudflare Tunnel:
@@ -88,7 +88,7 @@ docker compose up -d
 The project delegates data fetching, semantic deduplication, and AI scoring to **n8n**. To support dynamic scheduling and multiple RSS feeds efficiently, the pipeline is divided into a **Master** and **Sub-workflow** pattern:
 
 *   **Master Workflow (n8n_master_workflow.json)**: Runs on a schedule, queries active RSS feeds from the database, and triggers the sub-workflow for each source.
-*   **Sub-workflow (n8n_sub_workflow.json)**: Receives a single RSS URL, fetches its feed, checks for duplicates, computes embeddings via TEI, scores the article with MiniMax LLM, and inserts it into the database.
+*   **Sub-workflow (n8n_sub_workflow.json)**: Receives a single RSS URL, fetches its feed, checks for duplicates, computes embeddings via TEI, scores the article with an Anthropic-compatible LLM, and inserts it into the database.
 
 #### Deployment Steps:
 

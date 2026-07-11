@@ -115,7 +115,7 @@ Reason:
 
 ## LLM
 
-MiniMax M3
+Anthropic-compatible LLM
 
 Compatible with Anthropic API.
 
@@ -183,7 +183,7 @@ Components:
 - PostgreSQL
 - FastAPI
 - Next.js
-- MiniMax API integration
+- LLM API integration
 - Reverse Proxy (Caddy or Nginx)
 
 ---
@@ -331,7 +331,7 @@ Duplicate stories belong to one Duplicate Group.
 
 LLM Analysis
 
-MiniMax M3 analyses every article.
+Configured LLM analyses every article.
 
 Outputs:
 
@@ -670,8 +670,9 @@ MIN_CHINESE_RELEVANCE=60
 
 DATABASE_URL=...
 
-MINIMAX_API_KEY=...
-
+LLM_API_KEY=...
+LLM_API_URL=...
+LLM_MODEL=...
 WORKFLOW_VERSION=1.0.0
 ```
 

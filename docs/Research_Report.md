@@ -8,7 +8,7 @@ This Research Report compiles market dynamics, customer insights, technical feas
 
 ### Key Research Findings
 1. **Strategic Shift in Immigration:** Traditional Western paths (US, Canada, UK, Australia) are tightening their policies in 2025–2026. Mainland Chinese interest is shifting toward Asian destinations (Japan, Malaysia MM2H, Singapore, Thailand) and selective European residency (Greece, Hungary).
-2. **Technical Feasibility of MiniMax M3:** MiniMax M3 offers an Anthropic-compatible API. Testing shows it natively supports system prompts, reasoning blocks, and high-quality Chinese/English translation, making it highly suitable as the core cognitive engine for scoring and summarizing news.
+2. **Technical Feasibility of LLM:** The configured Anthropic-compatible LLM offers standard APIs. Testing shows it natively supports system prompts, reasoning blocks, and high-quality Chinese/English translation, making it highly suitable as the core cognitive engine for scoring and summarizing news.
 3. **De-duplication Architecture:** Simple URL and title comparisons fail for syndicated press releases (AP/Reuters). A hybrid approach combining metadata hashing (Level 1) with semantic cosine similarity using database-level vector indexing (Level 2, e.g., PostgreSQL `pgvector`) is necessary to meet the 90%+ de-duplication target.
 4. **Data Retention & Fair Use Compliance:** Since the platform stores only metadata (titles, summaries, tags, and scores) and purges records after 90 days, it is highly compliant with copyright laws and operates on a lightweight storage footprint.
 
@@ -18,7 +18,7 @@ This Research Report compiles market dynamics, customer insights, technical feas
 
 The objectives of this research are:
 1. **Validate Concept:** Confirm if an automated desk can successfully highlight stories relevant specifically to Chinese audiences.
-2. **Evaluate Technologies:** Assess the suitability of n8n, MiniMax M3, FastAPI, PostgreSQL (pgvector), and Cloudflare Tunnel for a hybrid self-hosted stack.
+2. **Evaluate Technologies:** Assess the suitability of n8n, the LLM integration, FastAPI, PostgreSQL (pgvector), and Cloudflare Tunnel for a hybrid self-hosted stack.
 3. **Analyze Market Trends:** Identify target audience interests to refine country and topic tag structures.
 4. **Identify Risks:** Highlight technical, regulatory, and business risks and propose mitigation strategies before development begins.
 
@@ -27,7 +27,7 @@ The objectives of this research are:
 ## Key Assumptions
 
 The following assumptions underly the project's design:
-* **LLM Translation Quality:** MiniMax M3 can translate original articles (often in English, Spanish, Portuguese, or Japanese) to Chinese with enough precision to retain critical policy terms.
+* **LLM Translation Quality:** The configured LLM can translate original articles (often in English, Spanish, Portuguese, or Japanese) to Chinese with enough precision to retain critical policy terms.
 * **Scoring Alignment:** The LLM can accurately distinguish between global importance and relevance to the Chinese diaspora (e.g., a small change in the Hong Kong Top Talent scheme is of low global importance but of extremely high Chinese relevance).
 * **Metadata Sufficiency:** A video creator does not need a full-text database; article summaries, source URLs, and key takeaways are sufficient to decide whether to research a topic deeper.
 * **Google Alerts RSS Reliability:** Google Alerts RSS serves as a robust base aggregator, which can be supplemented by direct feeds from government portals.
@@ -85,8 +85,8 @@ The primary consumer of the content generated is the Chinese-speaking audience i
 ### 1. Workflow Automation (n8n)
 n8n is selected due to its node-based execution model and native integration with databases and HTTP clients. Self-hosting n8n via Docker avoids execution quotas common in cloud solutions (Zapier, Make).
 
-### 2. Large Language Model (MiniMax M3)
-MiniMax M3 offers several unique advantages for this system:
+### 2. Large Language Model (Anthropic-Compatible)
+The selected LLM offers several unique advantages for this system:
 * **API Compatibility:** Emulates the Anthropic Messages API, permitting direct integration using standard client libraries.
 * **Bilingual Proficiency:** Exceptional performance in Chinese-English translation and semantic analysis.
 * **Context Capacity:** 1M context window accommodates batch processing if required.
@@ -138,7 +138,7 @@ Next.js provides a highly interactive user experience. Deploying to Cloudflare P
 
 | Risk | Description | Impact | Mitigation Strategy |
 | :--- | :--- | :--- | :--- |
-| **MiniMax API Outages** | The translation or analysis workflow fails due to API downtime. | Medium | Store raw articles in a queue; retry execution; fall back to a mock or secondary LLM provider if offline. |
+| **LLM API Outages** | The translation or analysis workflow fails due to API downtime. | Medium | Store raw articles in a queue; retry execution; fall back to a mock or secondary LLM provider if offline. |
 | **False Grouping in De-duplication** | Vector similarity groups two distinct articles (e.g., US visa limits and UK visa limits) together. | High | Calibrate the similarity threshold (e.g., set to 0.88–0.92); require that duplicate groups share the same country and topic tags. |
 | **Self-Hosted Network Flakiness** | Ubuntu server loses connection, breaking the Cloudflare Tunnel. | Medium | Configure heartbeat monitoring; implement automatic system restarts for Docker services. |
 
@@ -177,7 +177,7 @@ By deploying Yutian Immigration AI Newsroom, the creator transitions from a reac
 ### Phase 1: Core Automation (MVP)
 * Set up self-hosted n8n and PostgreSQL.
 * Implement RSS collection (Google Alerts + selected government feeds).
-* Create the MiniMax M3 translation, analysis, and scoring pipeline.
+* Create the LLM translation, analysis, and scoring pipeline.
 * Develop the FastAPI backend exposing filterable news endpoints.
 * Build the basic Next.js dashboard displaying top stories with country/topic filters.
 
@@ -190,7 +190,7 @@ By deploying Yutian Immigration AI Newsroom, the creator transitions from a reac
 
 ## Decisions & Resolved Questions
 
-1. **MiniMax M3 Latency & Timeout Mitigation:** n8n workflows will utilize an asynchronous webhook pattern to handle batch parallel requests to the MiniMax M3 API, preventing execution timeouts.
+1. **LLM Latency & Timeout Mitigation:** n8n workflows will utilize an asynchronous webhook pattern to handle batch parallel requests to the LLM API, preventing execution timeouts.
 2. **Feeds Rate Limits & Google Alerts:** At this stage (Phase 1), RSS feeds (Google Alerts RSS and direct government feeds) are sufficient. Other data sources (such as custom Puppeteer scrapers) can be added modularly in future iterations. Feed checks will be scheduled every 3-4 hours to prevent rate limits.
 3. **Local Embedding Service:** We will run a local, free HuggingFace embedding container (hosting `all-MiniLM-L6-v2`) on the Ubuntu server for de-duplication, avoiding API-based embedding costs.
 
@@ -201,5 +201,5 @@ By deploying Yutian Immigration AI Newsroom, the creator transitions from a reac
 * **USCIS Newsroom:** [uscis.gov/newsroom](https://www.uscis.gov/newsroom)
 * **IRCC News:** [canada.ca/en/immigration-refugees-citizenship/news](https://www.canada.ca/en/immigration-refugees-citizenship/news)
 * **UK Home Office Media Blog:** [homeofficemedia.blog.gov.uk](https://homeofficemedia.blog.gov.uk)
-* **MiniMax Developer Documentation:** [developer.minimax.io](https://developer.minimax.io)
+* **LLM API Documentation:** Reference documentation for the selected LLM provider.
 * **pgvector Repository:** [github.com/pgvector/pgvector](https://github.com/pgvector/pgvector)

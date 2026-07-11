@@ -116,13 +116,13 @@ The downstream audience consuming the resulting video content includes:
 * **FR-1.3 (Storage Model):** A PostgreSQL database storing only metadata fields (no full-text bodies or media blobs).
 * **FR-1.4 (Automated Purge):** Expired metadata must be deleted automatically after 90 days (configurable via `NEWS_RETENTION_DAYS`).
 
-### 11.2 Processing Pipeline (n8n & MiniMax M3)
+### 11.2 Processing Pipeline (n8n & LLM)
 * **FR-2.1 (Language Detection):** Detect the original language of incoming articles.
 * **FR-2.2 (Translation Matrix):** Generate and store titles and summaries in three parallel fields: `Original`, `English`, and `Chinese`.
 * **FR-2.3 (De-duplication Engine):**
   * **Level 1 (Exact Match):** Compare URLs, Canonical URLs, and exact title hashes.
   * **Level 2 (Semantic Match):** Utilize `pgvector` for cosine similarity comparison on titles and summaries (threshold range: 0.88–0.92). Vector embeddings must be generated using a **free local HuggingFace embedding container** (e.g., running `all-MiniLM-L6-v2`) hosted on the self-hosted Ubuntu Server, avoiding external API costs. Group similar items under a single `duplicate_group` reference.
-* **FR-2.4 (LLM Enrichment):** Use MiniMax M3 (via an Anthropic-compatible API wrapper) to generate:
+* **FR-2.4 (LLM Enrichment):** Use the configured Anthropic-compatible LLM to generate:
   * Chinese and English summaries (max 150 words).
   * Country tags (e.g., `USA`, `Canada`, `Japan`, `Global`).
   * Topic tags (e.g., `Work Visa`, `PR`, `Citizenship`, `Golden Visa`).
@@ -161,7 +161,7 @@ The downstream audience consuming the resulting video content includes:
 
 * **Performance:** Dashboard client-side filtering response must render under 200ms. Detail drawer transition must run smoothly under 100ms.
 * **Scalability:** The database must comfortably handle up to 50,000 metadata records (average volume over 90 days) without query degradation.
-* **Cost Efficiency:** Maintain low operating costs by using MiniMax M3. Target API expenditure under $10 per month.
+* **Cost Efficiency:** Maintain low operating costs by selecting a cost-efficient LLM. Target API expenditure under $10 per month.
 * **Hosting Security:** Next.js frontend hosted on Cloudflare Pages. Communication back to self-hosted Ubuntu backend is routed exclusively through a Cloudflare Tunnel, eliminating exposed ports.
 * **Availability:** Background workflows must run reliably, utilizing automated retries for LLM API and network flakiness.
 
@@ -178,8 +178,8 @@ The downstream audience consuming the resulting video content includes:
 
 ## 14. Assumptions
 
-* **Feed Content Sufficiency:** The raw titles and descriptions provided in RSS feeds are sufficiently detailed for MiniMax M3 to perform precise language translation and metadata extraction.
-* **MiniMax API Availability:** MiniMax M3 API will maintain an uptime of >99% and process inputs with latency under 5 seconds per request.
+* **Feed Content Sufficiency:** The raw titles and descriptions provided in RSS feeds are sufficiently detailed for the LLM to perform precise language translation and metadata extraction.
+* **LLM API Availability:** The configured LLM API will maintain an uptime of >99% and process inputs with latency under 5 seconds per request.
 * **Ubuntu Server Stability:** The self-hosted server has a stable internet connection and sufficient resources (min 4GB RAM, 2 CPU cores) to host Docker Compose services.
 
 ---
@@ -196,7 +196,7 @@ The downstream audience consuming the resulting video content includes:
 ## 16. Dependencies
 
 * **Docker & Docker Compose:** Installed on the Ubuntu Server to manage n8n, FastAPI, PostgreSQL, and `cloudflared`.
-* **MiniMax Developer Account:** Active API key loaded into the environment variables.
+* **LLM API Credentials:** Active API key, API URL, and Model variables loaded into the environment variables.
 * **Cloudflare Account:** Active domain name configured for Pages and Cloudflare Tunnels.
 
 ---
@@ -205,7 +205,7 @@ The downstream audience consuming the resulting video content includes:
 
 | Risk | Impact | Mitigation Strategy |
 | :--- | :--- | :--- |
-| **MiniMax API Outages** | Medium | n8n workflows will place failed executions in a queue and attempt retries. A local mock mode will be available in FastAPI for local testing. |
+| **LLM API Outages** | Medium | n8n workflows will place failed executions in a queue and attempt retries. A local mock mode will be available in FastAPI for local testing. |
 | **De-duplication Over-grouping** | High | Calibrate the `pgvector` threshold. Require that grouped articles must match on both `country_tags` and `topic_tags` to prevent conflating unrelated news from different regions. |
 | **Tunnel Disconnections** | Medium | Configure Docker container auto-restart policy for `cloudflared` to automatically re-establish connection after network drops. |
 | **Google Alerts Rate Limits** | Low | Stagger RSS scraping intervals (e.g., every 4 hours) instead of hourly to minimize risk of IP blocks or rate limit limits. |
@@ -236,7 +236,7 @@ The downstream audience consuming the resulting video content includes:
 ### Phase 1: Core Automation (MVP)
 * Docker Compose setup (n8n, PostgreSQL, FastAPI, Cloudflare Tunnel).
 * RSS parser workflow in n8n (Google Alerts + public agency feeds).
-* MiniMax M3 translation, summarization, and grading engine integration.
+* LLM-driven translation, summarization, and grading engine integration.
 * FastAPI backend exposing news query, search, and detail APIs.
 * Basic Next.js feed viewer dashboard with country and topic filters.
 
@@ -257,7 +257,7 @@ The downstream audience consuming the resulting video content includes:
 
 ## 22. Decisions & Resolved Questions
 
-1. **MiniMax M3 Latency & Timeout Mitigation:** n8n workflows will utilize an asynchronous webhook pattern to handle batch parallel requests to the MiniMax M3 API, preventing execution timeouts.
+1. **LLM Latency & Timeout Mitigation:** n8n workflows will utilize an asynchronous webhook pattern to handle batch parallel requests to the LLM API, preventing execution timeouts.
 2. **Feed Sufficiency & Google Alerts:** At this stage (Phase 1), RSS feeds (Google Alerts RSS and direct government feeds) are sufficient. Other data sources (such as custom Puppeteer scrapers) can be added modularly in future iterations. Feed checks will be scheduled every 3-4 hours to prevent rate limits.
 3. **Local Embedding Service:** We will run a local, free HuggingFace embedding container (hosting `all-MiniLM-L6-v2`) on the Ubuntu server for de-duplication, avoiding API-based embedding costs.
 
@@ -268,4 +268,4 @@ The downstream audience consuming the resulting video content includes:
 | Timestamp | Type | Summary | Sections |
 | :--- | :--- | :--- | :--- |
 | 2026-07-09T06:30:00Z | Add | Created initial Product Requirements Document (PRD) from Vision, Constraints, Research Report, and Idea. | All |
-| 2026-07-09T06:46:00Z | Replace | Resolved open questions regarding MiniMax latency, feed sufficiency, and local embedding container choice. | Functional Requirements, Decisions, Constraints |
+| 2026-07-09T06:46:00Z | Replace | Resolved open questions regarding LLM latency, feed sufficiency, and local embedding container choice. | Functional Requirements, Decisions, Constraints |

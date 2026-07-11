@@ -120,14 +120,14 @@ This document specifies the integration-level test cases to verify systems bound
 * **Expected Result**:
   * Semantic vector comparison detects cosine distance < 0.12 (similarity > 88%).
   * Item B is inserted into `news_items` with its `parent_id` set to Item A's `id`.
-  * Item B does not dispatch requests to the MiniMax M3 API (skips enrichment costs).
+  * Item B does not dispatch requests to the LLM API (skips enrichment costs).
 * **Traceability**: [Architecture: Section 3.1 Sequence](file:///Users/victorxu/projects/immi_pulse/docs/Architecture.md#L92), [PRD: Section 13](file:///Users/victorxu/projects/immi_pulse/docs/PRD.md#L173)
 
-### IT-004-TC-003: MiniMax M3 Ingestion & API Wrapper
+### IT-004-TC-003: LLM Ingestion & API Wrapper
 * **Objective**: Verify correct payload generation and translation matrix mapping.
-* **Setup**: MiniMax M3 wrapper is active. n8n is processing a unique story in English.
+* **Setup**: Configured LLM wrapper is active. n8n is processing a unique story in English.
 * **Execution**:
-  1. Dispatch the processing payload to the MiniMax API wrapper.
+  1. Dispatch the processing payload to the LLM API wrapper.
 * **Expected Result**:
   * The response successfully populates the translation matrix: `title_zh` (Chinese translation), `summary_zh` (Chinese summary), and `ai_analysis` (impact evaluation).
   * Classification tags are generated correctly in structured arrays.
