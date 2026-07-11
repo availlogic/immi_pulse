@@ -62,7 +62,7 @@ We use a remotely-managed Cloudflare Tunnel (via Zero Trust Dashboard) to expose
    - In the Tunnel settings, go to the **Routes** (or Public Hostnames) tab.
    - Click **Add route** -> **Published application**.
    - **Subdomain**: e.g., `immipulse-api`
-   - **Domain**: Select your domain (e.g., `maxithome.com`)
+   - **Domain**: Select your domain (e.g., `example.com`)
    - **Service Type**: `HTTP`
    - **Service URL**: `backend:8000` (Crucial: use the docker service name)
    - Save the route.
@@ -75,7 +75,7 @@ cp .env.example .env
 Ensure you configure:
 - `TUNNEL_TOKEN`: The token you copied from Cloudflare Zero Trust.
 - `LLM_API_KEY`, `LLM_API_URL`, `LLM_MODEL` and database credentials.
-- `CORS_ORIGINS`: The exact URL of your frontend (e.g., `https://immipulse-frontend.maxithome.com`). This ensures the browser allows cross-origin requests.
+- `CORS_ORIGINS`: The exact URL of your frontend (e.g., `https://immipulse-frontend.example.com`). This ensures the browser allows cross-origin requests.
 
 ### 3. Start the Backend Infrastructure
 Deploy the entire stack, including PostgreSQL, TEI, n8n, FastAPI backend, and Cloudflare Tunnel:
@@ -156,7 +156,7 @@ The Next.js frontend is deployed to Cloudflare Pages using the `wrangler` CLI.
 
 4. **Bind Custom Domain (Optional)**:
    - In the Cloudflare Dashboard, go to **Workers & Pages** -> your project -> **Custom Domains**.
-   - Set up your custom domain (e.g., `immipulse-frontend.maxithome.com`).
+   - Set up your custom domain (e.g., `immipulse-frontend.example.com`).
 
 ## Design & Usage Workflow
 - **Development**: All code follows strict TDD (Test-Driven Development) methodologies.
