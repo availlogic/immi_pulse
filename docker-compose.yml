@@ -21,7 +21,7 @@ services:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.2
     container_name: immipulse-embeddings
     restart: unless-stopped
-    command: --model-id sentence-transformers/all-MiniLM-L6-v2
+    command: --model-id sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
     volumes:
       - tei-cache:/data
     networks:
