@@ -114,14 +114,14 @@ The downstream audience consuming the resulting video content includes:
 * **FR-1.1 (Multi-Source Support):** Support RSS ingestion from Google Alerts RSS feeds, official government portals (USCIS, IRCC, UK Home Office, Australian DHA, INZ), news agencies (Reuters, AP, BBC), and prominent immigration law firm blogs. At this stage (Phase 1), RSS feeds are the primary and sufficient data sources, with modularity to easily support other custom data sources later (e.g. scrapers, public API connectors).
 * **FR-1.2 (Scheduled Runs):** Automatic workflow executions scheduled every 3–4 hours via self-hosted n8n. The workflow must utilize an **asynchronous webhook pattern** when invoking parallel batch LLM requests to prevent execution timeouts.
 * **FR-1.3 (Storage Model):** A PostgreSQL database storing only metadata fields (no full-text bodies or media blobs).
-* **FR-1.4 (Automated Purge):** Expired metadata must be deleted automatically after 90 days (configurable via `NEWS_RETENTION_DAYS`).
+* **FR-1.4 (Automated Purge):** Expired metadata must be deleted automatically after 14 days (configurable via `NEWS_RETENTION_DAYS`).
 
 ### 11.2 Processing Pipeline (n8n & LLM)
 * **FR-2.1 (Language Detection):** Detect the original language of incoming articles.
 * **FR-2.2 (Translation Matrix):** Generate and store titles and summaries in three parallel fields: `Original`, `English`, and `Chinese`.
 * **FR-2.3 (De-duplication Engine):**
   * **Level 1 (Exact Match):** Compare URLs, Canonical URLs, and exact title hashes.
-  * **Level 2 (Semantic Match):** Utilize `pgvector` for cosine similarity comparison on titles and summaries (threshold range: 0.88–0.92). Vector embeddings must be generated using a **free local HuggingFace embedding container** (e.g., running `all-MiniLM-L6-v2`) hosted on the self-hosted Ubuntu Server, avoiding external API costs. Group similar items under a single `duplicate_group` reference.
+  * **Level 2 (Semantic Match):** Utilize `pgvector` for cosine similarity comparison on titles and summaries (threshold range: 0.88–0.92). Vector embeddings must be generated using a **free local HuggingFace embedding container** (e.g., running `paraphrase-multilingual-MiniLM-L12-v2`) hosted on the self-hosted Ubuntu Server, avoiding external API costs. Group similar items under a single `duplicate_group` reference.
 * **FR-2.4 (LLM Enrichment):** Use the configured Anthropic-compatible LLM to generate:
   * Chinese and English summaries (max 150 words).
   * Country tags (e.g., `USA`, `Canada`, `Japan`, `Global`).
@@ -160,7 +160,7 @@ The downstream audience consuming the resulting video content includes:
 ## 12. Non-functional Requirements
 
 * **Performance:** Dashboard client-side filtering response must render under 200ms. Detail drawer transition must run smoothly under 100ms.
-* **Scalability:** The database must comfortably handle up to 50,000 metadata records (average volume over 90 days) without query degradation.
+* **Scalability:** The database must comfortably handle up to 50,000 metadata records (average volume over 14 days) without query degradation.
 * **Cost Efficiency:** Maintain low operating costs by selecting a cost-efficient LLM. Target API expenditure under $10 per month.
 * **Hosting Security:** Next.js frontend hosted on Cloudflare Pages. Communication back to self-hosted Ubuntu backend is routed exclusively through a Cloudflare Tunnel, eliminating exposed ports.
 * **Availability:** Background workflows must run reliably, utilizing automated retries for LLM API and network flakiness.
@@ -172,7 +172,7 @@ The downstream audience consuming the resulting video content includes:
 * **Chinese Relevance Threshold:** News items with a `chinese_relevance_score` lower than 60 are shown in the main dashboard feed by default, but the user can explicitly uncheck the "Show Low Relevance" toggle to hide them.
 * **Top Recommendation Criteria:** A story card is flagged as "High Recommendation" if its `video_score` is >= 70 and `chinese_relevance_score` is >= 70.
 * **De-duplication Scope:** De-duplication must check articles within a rolling 7-day window. Items outside this window are considered distinct news cycles.
-* **Data Retention Policy:** The PostgreSQL db runs an automated daily cron job to delete records where `published_at` is older than `NEWS_RETENTION_DAYS` (default: 90).
+* **Data Retention Policy:** The PostgreSQL db runs an automated daily cron job to delete records where `published_at` is older than `NEWS_RETENTION_DAYS` (default: 14).
 
 ---
 
@@ -251,7 +251,7 @@ The downstream audience consuming the resulting video content includes:
 
 * **Automatic Script Outlines:** Auto-generating a structured video script layout (3-hook format) based on the AI analysis.
 * **Dynamic News Digests:** Automated daily/weekly summary emails, WeChat notifications, or Telegram messages containing top-ranked topics.
-* **Interactive Chat / RAG:** Adding a chat interface inside the dashboard allowing the creator to query the 90-day news database using natural language (e.g., *"What changed about Japan's skilled visa last month?"*).
+* **Interactive Chat / RAG:** Adding a chat interface inside the dashboard allowing the creator to query the 14-day news database using natural language (e.g., *"What changed about Japan's skilled visa last month?"*).
 
 ---
 
@@ -259,7 +259,7 @@ The downstream audience consuming the resulting video content includes:
 
 1. **LLM Latency & Timeout Mitigation:** n8n workflows will utilize an asynchronous webhook pattern to handle batch parallel requests to the LLM API, preventing execution timeouts.
 2. **Feed Sufficiency & Google Alerts:** At this stage (Phase 1), RSS feeds (Google Alerts RSS and direct government feeds) are sufficient. Other data sources (such as custom Puppeteer scrapers) can be added modularly in future iterations. Feed checks will be scheduled every 3-4 hours to prevent rate limits.
-3. **Local Embedding Service:** We will run a local, free HuggingFace embedding container (hosting `all-MiniLM-L6-v2`) on the Ubuntu server for de-duplication, avoiding API-based embedding costs.
+3. **Local Embedding Service:** We will run a local, free HuggingFace embedding container (hosting `paraphrase-multilingual-MiniLM-L12-v2`) on the Ubuntu server for de-duplication, avoiding API-based embedding costs.
 
 ---
 

@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "sqlite+aiosqlite:///./immipulse.db"
     DASHBOARD_API_TOKEN: str = "generate_a_secure_random_token"
-    NEWS_RETENTION_DAYS: int = 90
+    NEWS_RETENTION_DAYS: int = 14
     CORS_ORIGINS: str = "*"
 
     model_config = {"env_prefix": "", "case_sensitive": True}

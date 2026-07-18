@@ -79,7 +79,7 @@ graph TD
 ### 2.5 Local Text Embeddings Inference (TEI) Container
 * **Hosting**: Docker container on self-hosted Ubuntu Server.
 * **Responsibilities**:
-  - Serve the optimized HuggingFace `all-MiniLM-L6-v2` model using HuggingFace's Rust-based Text Embeddings Inference container.
+  - Serve the optimized HuggingFace `paraphrase-multilingual-MiniLM-L12-v2` model using HuggingFace's Rust-based Text Embeddings Inference container.
   - Expose an ultra-fast `/embed` HTTP endpoint to vectorize incoming titles.
   - Maintain absolute data privacy and eliminate third-party API vector generation fees.
 
@@ -95,7 +95,7 @@ sequenceDiagram
     participant Cron as n8n Scheduler
     participant Source as RSS / Government Portals
     participant DB as PostgreSQL (pgvector)
-    participant TEI as Local TEI Container (all-MiniLM)
+    participant TEI as Local TEI Container (paraphrase-multilingual-MiniLM)
     participant LLM as LLM API (Anthropic-Compatible)
     
     Cron->>Source: Poll RSS items (rolling window check)
@@ -193,7 +193,7 @@ services:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.2
     container_name: immipulse-embeddings
     restart: unless-stopped
-    command: --model-id sentence-transformers/all-MiniLM-L6-v2
+    command: --model-id sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
     volumes:
       - tei-cache:/data
     networks:

@@ -49,7 +49,7 @@ CREATE TABLE news_items (
     official_source BOOLEAN NOT NULL DEFAULT FALSE,
     youtube_suggestions JSONB NOT NULL DEFAULT '{}'::jsonb,
 
-    -- Vector Embeddings for level 2 de-duplication (384 dimensions for all-MiniLM-L6-v2)
+    -- Vector Embeddings for level 2 de-duplication (384 dimensions for paraphrase-multilingual-MiniLM-L12-v2)
     title_vector VECTOR(384),
 
     -- Version Audit
@@ -86,7 +86,7 @@ CREATE INDEX idx_news_items_title_vector ON news_items USING hnsw (title_vector 
 -- 4. Data Retention Purge Function
 -- Deletes news items older than the configured retention period,
 -- preserving starred candidates and parent items of starred children.
-CREATE OR REPLACE FUNCTION purge_expired_news(retention_days INTEGER DEFAULT 90)
+CREATE OR REPLACE FUNCTION purge_expired_news(retention_days INTEGER DEFAULT 14)
 RETURNS INTEGER
 LANGUAGE plpgsql
 AS $$

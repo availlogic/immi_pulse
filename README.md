@@ -75,6 +75,7 @@ cp .env.example .env
 Ensure you configure:
 - `TUNNEL_TOKEN`: The token you copied from Cloudflare Zero Trust.
 - `LLM_API_KEY`, `LLM_API_URL`, `LLM_MODEL` and database credentials.
+- `NEWS_RETENTION_DAYS`: The database data retention period in days (default: `14`).
 - `CORS_ORIGINS`: The exact URL of your frontend (e.g., `https://immipulse-frontend.example.com`). This ensures the browser allows cross-origin requests.
 
 ### 3. Start the Backend Infrastructure

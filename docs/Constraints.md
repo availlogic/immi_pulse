@@ -6,7 +6,7 @@ This document outlines the operational boundaries, technical requirements, and s
 
 - **Workflow Engine**: Self-hosted n8n (for RSS collection, translation pipelines, database storage, and scheduling). Workflows must utilize an **asynchronous webhook design** when dispatching parallel batch LLM requests to prevent timeout errors.
 - **LLM Integration**: Anthropic-compatible LLM for translation, semantic analysis, and scoring.
-- **Embedding Generation**: Local HuggingFace embedding container (hosting `all-MiniLM-L6-v2`) on the self-hosted Ubuntu Server, providing free semantic vectors for de-duplication without external API dependencies.
+- **Embedding Generation**: Local HuggingFace embedding container (hosting `paraphrase-multilingual-MiniLM-L12-v2`) on the self-hosted Ubuntu Server, providing free semantic vectors for de-duplication without external API dependencies.
 - **Backend API**: FastAPI (Python) for servicing the dashboard, filtering, searching, and managing saved candidates.
 - **Database**: PostgreSQL with the `pgvector` extension, storing strictly metadata (no full article bodies, HTML content, or media files).
 - **Frontend Framework**: Next.js (hosted on Cloudflare, e.g., Cloudflare Pages, featuring fast interactive filtering).
@@ -22,14 +22,14 @@ This document outlines the operational boundaries, technical requirements, and s
   - n8n
   - PostgreSQL (with `pgvector`)
   - FastAPI
-  - **Local Embedding Service** (HuggingFace container for `all-MiniLM-L6-v2`)
+  - **Local Embedding Service** (HuggingFace container for `paraphrase-multilingual-MiniLM-L12-v2`)
   - Cloudflare Tunnel Client (`cloudflared`)
 - **Local-First (Backend/Data)**: The database, backend engine, and workflows run locally on self-hosted hardware. No third-party cloud hosting is used for data storage or background processing.
 
 ## Data Retention & Storage Constraints
 
 - **Metadata Only**: Storage is restricted to article metadata, summaries, tags, and scores. Original article bodies, images, and attachments are explicitly excluded.
-- **Time-bound Retention**: Expired metadata is automatically purged after 90 days (configurable via `NEWS_RETENTION_DAYS`).
+- **Time-bound Retention**: Expired metadata is automatically purged after 14 days (configurable via `NEWS_RETENTION_DAYS`).
 
 ## Security & Configuration Constraints
 

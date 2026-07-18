@@ -10,7 +10,7 @@ This Research Report compiles market dynamics, customer insights, technical feas
 1. **Strategic Shift in Immigration:** Traditional Western paths (US, Canada, UK, Australia) are tightening their policies in 2025–2026. Mainland Chinese interest is shifting toward Asian destinations (Japan, Malaysia MM2H, Singapore, Thailand) and selective European residency (Greece, Hungary).
 2. **Technical Feasibility of LLM:** The configured Anthropic-compatible LLM offers standard APIs. Testing shows it natively supports system prompts, reasoning blocks, and high-quality Chinese/English translation, making it highly suitable as the core cognitive engine for scoring and summarizing news.
 3. **De-duplication Architecture:** Simple URL and title comparisons fail for syndicated press releases (AP/Reuters). A hybrid approach combining metadata hashing (Level 1) with semantic cosine similarity using database-level vector indexing (Level 2, e.g., PostgreSQL `pgvector`) is necessary to meet the 90%+ de-duplication target.
-4. **Data Retention & Fair Use Compliance:** Since the platform stores only metadata (titles, summaries, tags, and scores) and purges records after 90 days, it is highly compliant with copyright laws and operates on a lightweight storage footprint.
+4. **Data Retention & Fair Use Compliance:** Since the platform stores only metadata (titles, summaries, tags, and scores) and purges records after 14 days, it is highly compliant with copyright laws and operates on a lightweight storage footprint.
 
 ---
 
@@ -192,7 +192,7 @@ By deploying Yutian Immigration AI Newsroom, the creator transitions from a reac
 
 1. **LLM Latency & Timeout Mitigation:** n8n workflows will utilize an asynchronous webhook pattern to handle batch parallel requests to the LLM API, preventing execution timeouts.
 2. **Feeds Rate Limits & Google Alerts:** At this stage (Phase 1), RSS feeds (Google Alerts RSS and direct government feeds) are sufficient. Other data sources (such as custom Puppeteer scrapers) can be added modularly in future iterations. Feed checks will be scheduled every 3-4 hours to prevent rate limits.
-3. **Local Embedding Service:** We will run a local, free HuggingFace embedding container (hosting `all-MiniLM-L6-v2`) on the Ubuntu server for de-duplication, avoiding API-based embedding costs.
+3. **Local Embedding Service:** We will run a local, free HuggingFace embedding container (hosting `paraphrase-multilingual-MiniLM-L12-v2`) on the Ubuntu server for de-duplication, avoiding API-based embedding costs.
 
 ---
 

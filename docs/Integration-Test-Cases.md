@@ -101,7 +101,7 @@ This document specifies the integration-level test cases to verify systems bound
 
 ### IT-004-TC-001: n8n ↔ Local TEI Embeddings Container
 * **Objective**: Verify that the n8n pipeline can communicate with the local HuggingFace embedding container to generate semantic vectors.
-* **Setup**: Local TEI container hosting sentence-transformers `all-MiniLM-L6-v2` is online.
+* **Setup**: Local TEI container hosting sentence-transformers `paraphrase-multilingual-MiniLM-L12-v2` is online.
 * **Execution**:
   1. Trigger n8n logic: POST to TEI `/embed` with input `"日本高度人才新规则"`.
 * **Expected Result**:
@@ -141,10 +141,10 @@ This document specifies the integration-level test cases to verify systems bound
 * **Objective**: Verify that expired, unstarred metadata is deleted while preserving candidate references.
 * **Setup**:
   * Ingest:
-    * Card A: published 95 days ago, NOT starred.
-    * Card B: published 95 days ago, starred as candidate (row in `candidates`).
-    * Card C: published 95 days ago, NOT starred, but is the parent of Card D (which is starred).
-    * Card E: published 20 days ago, NOT starred.
+    * Card A: published 15 days ago, NOT starred.
+    * Card B: published 15 days ago, starred as candidate (row in `candidates`).
+    * Card C: published 15 days ago, NOT starred, but is the parent of Card D (which is starred).
+    * Card E: published 5 days ago, NOT starred.
 * **Execution**:
   1. Trigger the daily database retention query script.
   2. Query for remaining records.
@@ -152,5 +152,5 @@ This document specifies the integration-level test cases to verify systems bound
   * Card A is successfully deleted.
   * Card B is preserved (because it is linked in the `candidates` table).
   * Card C is preserved (because its child duplicate Card D is in `candidates`).
-  * Card E is preserved (because it is within the 90-day retention window).
+  * Card E is preserved (because it is within the 14-day retention window).
 * **Traceability**: [Database: Section 5](file:///Users/victorxu/projects/immi_pulse/docs/Database.md#L160), [PRD: Section 13 Retention](file:///Users/victorxu/projects/immi_pulse/docs/PRD.md#L174)

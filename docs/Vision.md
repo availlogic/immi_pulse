@@ -60,5 +60,5 @@ The content generated from this system is intended for:
 - **Notifications & Digests**: Email daily digests and integrations with WeChat, Telegram, and Slack.
 - **Advanced AI Outputs**: Automatic YouTube script drafting, thumbnail text prompt generation, and AI podcast outlines.
 - **Analytics & Trends**: Weekly/monthly immigration trend reports, chart visualizations, and source reliability statistics.
-- **Interactive Knowledge**: Semantic search and RAG assistant queryable over the 90-day news metadata corpus.
+- **Interactive Knowledge**: Semantic search and RAG assistant queryable over the 14-day news metadata corpus.
 - **Collaborative Features**: Manual tag editing, personal notes for news items, and multi-user configurations.

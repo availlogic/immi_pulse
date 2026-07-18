@@ -35,7 +35,7 @@ The system should automatically:
 - Classify every article.
 - Score every article.
 - Present only the most valuable stories.
-- Keep only recent news (default: 90 days).
+- Keep only recent news (default: 14 days).
 - Provide an elegant dashboard for daily review.
 
 The system should save approximately **1~2 hours every day** that would otherwise be spent manually searching for news.
@@ -358,7 +358,7 @@ Only metadata is stored.
 
 Retention:
 
-90 days (configurable).
+14 days (configurable).
 
 Expired records are automatically deleted.
 
@@ -660,7 +660,7 @@ This becomes the weekly content planning board.
 Environment variables
 
 ```
-NEWS_RETENTION_DAYS=90
+NEWS_RETENTION_DAYS=14
 
 TOP_STORIES_COUNT=10
 
@@ -732,7 +732,7 @@ No cloud dependency except the LLM API.
 - Thumbnail generation prompt
 - AI podcast outline
 - Semantic search
-- RAG over the 90-day news corpus
+- RAG over the 14-day news corpus
 - AI Q&A assistant
 - Personal notes for each news item
 - Manual tag editing

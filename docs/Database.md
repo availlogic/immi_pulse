@@ -119,7 +119,7 @@ CREATE TABLE news_items (
     official_source BOOLEAN NOT NULL DEFAULT FALSE,
     youtube_suggestions JSONB NOT NULL DEFAULT '{}'::jsonb, -- {"titles": ["Title 1", "Title 2"], "thumbnail_prompt": "Prompt"}
     
-    -- Vector Embeddings for level 2 de-duplication (384 dimensions for all-MiniLM-L6-v2)
+    -- Vector Embeddings for level 2 de-duplication (384 dimensions for paraphrase-multilingual-MiniLM-L12-v2)
     title_vector VECTOR(384),
     
     -- Version Audit
@@ -187,7 +187,7 @@ CREATE INDEX idx_news_items_title_vector ON news_items USING hnsw (title_vector 
 
 ## 5. Data Retention & Purge Logic
 
-To maintain a lightweight database and respect copyright metadata guidelines, a cron-based purge script runs daily to delete articles older than 90 days. 
+To maintain a lightweight database and respect copyright metadata guidelines, a cron-based purge script runs daily to delete articles older than 14 days. 
 
 To preserve candidate relationships, the deletion excludes:
 - Starred items present in the `candidates` table.
@@ -195,7 +195,7 @@ To preserve candidate relationships, the deletion excludes:
 
 ```sql
 DELETE FROM news_items
-WHERE published_at < NOW() - INTERVAL '90 days'
+WHERE published_at < NOW() - INTERVAL '14 days'
   -- Exclude starred news items
   AND id NOT IN (
       SELECT news_item_id 

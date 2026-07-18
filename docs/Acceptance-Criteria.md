@@ -24,7 +24,7 @@ This document establishes the user-facing and system-level Acceptance Criteria a
 * **Feature Name**: Level 1 & Level 2 De-duplication
 * **Acceptance Conditions**:
   - **Level 1**: Skips processing for incoming articles with exact matching URLs, Canonical URLs, or Title Hashes.
-  - **Level 2**: Converts incoming headlines using a local HuggingFace embedding container (`sentence-transformers/all-MiniLM-L6-v2`) to a 384-dimensional vector.
+  - **Level 2**: Converts incoming headlines using a local HuggingFace embedding container (`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`) to a 384-dimensional vector.
   - Groups articles with a cosine distance threshold < 0.12 (similarity >= 88%) under a single duplicate group by assigning `parent_id` matching the primary news item.
   - Restricts de-duplication comparison to a rolling 7-day window.
   - De-duplicated child articles must not trigger external LLM enrichment calls.
@@ -89,7 +89,7 @@ This document establishes the user-facing and system-level Acceptance Criteria a
 
 ### 2.3 Data Storage & Retention
 - The system must store strictly metadata: no full-text HTML body parsing, scripts, or media files.
-- Purge cron routine executes daily to delete records older than 90 days, excluding starred candidates or parents of starred candidates.
+- Purge cron routine executes daily to delete records older than 14 days, excluding starred candidates or parents of starred candidates.
 
 ### 2.4 Visual Design & UX Compliance
 - Light-mode-first Sunny Horizon theme: Sky Blue bases (`hsl(205, 85%, 45%)`), Sunrise Amber accents (`hsl(38, 95%, 52%)`), Warm Sand base background (`hsl(35, 20%, 98%)`), Pure White card surfaces, and Charcoal headings.

@@ -21,10 +21,10 @@ To ensure system reliability, the testing suite is structured across four distin
 * **Target Area**: Interaction boundaries between system components.
 * **Scope**:
   * **FastAPI ↔ PostgreSQL + pgvector**: Verifying query parameter mappings (filtering by countries, topics, audiences), full-text search index usage, pagination bounds, score sorting, candidate stars persistence, and note saves.
-  * **n8n Workflow ↔ Local TEI Container**: Verifying correct vectorization of titles via local `all-MiniLM-L6-v2` `/embed` API.
+  * **n8n Workflow ↔ Local TEI Container**: Verifying correct vectorization of titles via local `paraphrase-multilingual-MiniLM-L12-v2` `/embed` API.
   * **n8n Workflow ↔ PostgreSQL**: Verifying Level 1 de-duplication (URL/title hash checks), Level 2 pgvector similarity querying (cosine distance checks), and insertion of fully enriched metadata.
   * **n8n Workflow ↔ LLM API**: Verifying LLM parsing correctness, translations format, tags formatting, and retry logic on connection failures.
-  * **Data Retention Purge Daily Cron**: Verifying that entries older than 90 days are deleted unless starred in the candidates table or parents of a starred duplicate.
+  * **Data Retention Purge Daily Cron**: Verifying that entries older than 14 days are deleted unless starred in the candidates table or parents of a starred duplicate.
 
 ### 1.3 System Testing
 * **Target Area**: End-to-end backend API verification and Next.js frontend state rendering in isolation.
