@@ -63,7 +63,7 @@
         },
         "mode": "each",
         "options": {
-          "waitForSubWorkflow": false
+          "waitForSubWorkflow": true
         }
       },
       "type": "n8n-nodes-base.executeWorkflow",
@@ -73,7 +73,8 @@
         0
       ],
       "id": "22fbd8e0-8d1e-42ef-a921-9b3297a8363e",
-      "name": "Call 'My Sub-Workflow 1'"
+      "name": "Call 'My Sub-Workflow 1'",
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {},
